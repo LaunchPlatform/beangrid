@@ -161,7 +161,13 @@ class ExcelTransformer(Transformer):
         return CellRange(start, end)
 
     def func_call(self, name: str, *args: ExcelAST) -> FuncCall:
-        return FuncCall(str(name), list(args))
+        # Handle the case where args might be a list from the args rule
+        if args and isinstance(args[0], list):
+            # If the first argument is a list (from args rule), use it directly
+            return FuncCall(str(name), args[0])
+        else:
+            # Otherwise, use all arguments as individual args
+            return FuncCall(str(name), list(args))
 
     def args(self, *args: ExcelAST) -> List[ExcelAST]:
         return list(args)

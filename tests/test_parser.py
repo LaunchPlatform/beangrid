@@ -65,7 +65,11 @@ from beangrid.core.parser import UnaryOp
             'IF(A1>0, "Yes", "No")',
             FuncCall(
                 "IF",
-                [BinOp(Cell("A1"), ">", Number("0")), String('"Yes"'), String('"No"')],
+                [
+                    BinOp(Cell("A1"), ">", Number("0")),
+                    String('"Yes"'),
+                    String('"No"'),
+                ],
             ),
         ),
     ],
