@@ -53,8 +53,8 @@ excel_grammar = r"""
     NUMBER: /\d+(\.\d+)?([eE][+-]?\d+)?/
     STRING: /"(?:[^"]|"")*"/
 
-    TRUE: /TRUE/i
-    FALSE: /FALSE/i
+    TRUE.10: /TRUE/i
+    FALSE.10: /FALSE/i
 
     %import common.WS
     %ignore WS
