@@ -46,8 +46,8 @@ excel_grammar = r"""
     string: STRING
     bool: TRUE | FALSE
 
-    SHEET_REF: /[A-Za-z_][A-Za-z0-9_]*!/
-    CELL_REF: /\$?[A-Za-z]{1,3}\$?\d{1,7}/
+    SHEET_REF.9: /[A-Za-z_][A-Za-z0-9_]*!/
+    CELL_REF.8: /\$?[A-Za-z]{1,3}\$?\d{1,7}/
 
     NAME: /[A-Za-z_][A-Za-z0-9_.]*/
     NUMBER: /\d+(\.\d+)?([eE][+-]?\d+)?/
