@@ -7,5 +7,11 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.116.1",
     "jinja2>=3.1.6",
+    "lark>=1.2.2",
     "pydantic>=2.11.7",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
 ]
