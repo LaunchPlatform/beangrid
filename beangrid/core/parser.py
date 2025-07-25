@@ -16,10 +16,25 @@ excel_grammar = r"""
          | number
          | string
          | bool
-         | expr binop expr   -> bin_expr
-         | "-" expr          -> neg
-         | "+" expr          -> pos
+         | unary_expr
+         | binary_expr
          | "(" expr ")"
+
+    ?unary_expr: "-" expr          -> neg
+                | "+" expr          -> pos
+
+    ?binary_expr: expr "+" expr     -> add
+                | expr "-" expr     -> sub
+                | expr "*" expr     -> mul
+                | expr "/" expr     -> div
+                | expr "^" expr     -> pow
+                | expr "&" expr     -> concat
+                | expr "=" expr     -> eq
+                | expr "<>" expr    -> ne
+                | expr "<=" expr    -> le
+                | expr ">=" expr    -> ge
+                | expr "<" expr     -> lt
+                | expr ">" expr     -> gt
 
     func_call: NAME "(" [args] ")"
     args: expr ("," expr)*
@@ -30,8 +45,6 @@ excel_grammar = r"""
     number: NUMBER
     string: STRING
     bool: TRUE | FALSE
-
-    binop: "+" | "-" | "*" | "/" | "^" | "&" | "=" | "<>" | "<=" | ">=" | "<" | ">"
 
     SHEET_REF: /[A-Za-z_][A-Za-z0-9_]*!/
     CELL_REF: /\$?[A-Za-z]{1,3}\$?\d{1,7}/
@@ -84,7 +97,7 @@ class Cell(ExcelAST):
 
     def __repr__(self) -> str:
         if self.sheet:
-            return f"Cell({self.sheet!r}, {self.ref!r})"
+            return f"Cell({self.ref!r}, sheet={self.sheet!r})"
         return f"Cell({self.ref!r})"
 
 
@@ -153,8 +166,41 @@ class ExcelTransformer(Transformer):
     def args(self, *args: ExcelAST) -> List[ExcelAST]:
         return list(args)
 
-    def bin_expr(self, left: ExcelAST, op: str, right: ExcelAST) -> BinOp:
-        return BinOp(left, str(op), right)
+    def add(self, left: ExcelAST, right: ExcelAST) -> BinOp:
+        return BinOp(left, "+", right)
+
+    def sub(self, left: ExcelAST, right: ExcelAST) -> BinOp:
+        return BinOp(left, "-", right)
+
+    def mul(self, left: ExcelAST, right: ExcelAST) -> BinOp:
+        return BinOp(left, "*", right)
+
+    def div(self, left: ExcelAST, right: ExcelAST) -> BinOp:
+        return BinOp(left, "/", right)
+
+    def pow(self, left: ExcelAST, right: ExcelAST) -> BinOp:
+        return BinOp(left, "^", right)
+
+    def concat(self, left: ExcelAST, right: ExcelAST) -> BinOp:
+        return BinOp(left, "&", right)
+
+    def eq(self, left: ExcelAST, right: ExcelAST) -> BinOp:
+        return BinOp(left, "=", right)
+
+    def ne(self, left: ExcelAST, right: ExcelAST) -> BinOp:
+        return BinOp(left, "<>", right)
+
+    def le(self, left: ExcelAST, right: ExcelAST) -> BinOp:
+        return BinOp(left, "<=", right)
+
+    def ge(self, left: ExcelAST, right: ExcelAST) -> BinOp:
+        return BinOp(left, ">=", right)
+
+    def lt(self, left: ExcelAST, right: ExcelAST) -> BinOp:
+        return BinOp(left, "<", right)
+
+    def gt(self, left: ExcelAST, right: ExcelAST) -> BinOp:
+        return BinOp(left, ">", right)
 
     def neg(self, expr: ExcelAST) -> UnaryOp:
         return UnaryOp("-", expr)
@@ -181,9 +227,6 @@ class ExcelTransformer(Transformer):
         return str(token)
 
     def FALSE(self, token: str) -> str:
-        return str(token)
-
-    def binop(self, token: str) -> str:
         return str(token)
 
 
