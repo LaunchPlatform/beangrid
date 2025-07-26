@@ -409,6 +409,7 @@ async def websocket_chat_endpoint(
                 in_thinking_block = False
                 thinking_complete = False
                 current_thinking_content = ""
+                pending_thinking_content = ""
 
                 async for chunk in response:
                     if chunk and "choices" in chunk and len(chunk["choices"]) > 0:
@@ -422,6 +423,9 @@ async def websocket_chat_endpoint(
                                 in_thinking_block = True
                                 # Remove the <think> tag from content before sending
                                 content = content.replace("<think>", "")
+                                print(
+                                    f"[WEBSOCKET] Thinking started, content after <think> removal: '{content}'"
+                                )
                                 # Send thinking start indicator
                                 await websocket.send_text(
                                     json.dumps(
@@ -430,20 +434,56 @@ async def websocket_chat_endpoint(
                                 )
 
                             if in_thinking_block:
-                                thinking_content += content
-                                # Send thinking content in real-time (without tags)
-                                await websocket.send_text(
-                                    json.dumps(
-                                        {"type": "thinking_stream", "content": content}
+                                # Check if this chunk contains the end of thinking
+                                if "</think>" in content:
+                                    in_thinking_block = False
+                                    thinking_complete = True
+                                    # Split content at </think> and only send the part before it
+                                    parts = content.split("</think>")
+                                    thinking_part = parts[0]
+                                    remaining_part = (
+                                        "".join(parts[1:]) if len(parts) > 1 else ""
                                     )
-                                )
 
-                            if "</think>" in content:
-                                in_thinking_block = False
-                                thinking_complete = True
-                                # Remove the </think> tag from content and send remaining thinking content
-                                content = content.replace("</think>", "")
-                                if content.strip():
+                                    # Send the thinking content before </think>
+                                    if thinking_part.strip():
+                                        print(
+                                            f"[WEBSOCKET] Sending final thinking content: '{thinking_part}'"
+                                        )
+                                        await websocket.send_text(
+                                            json.dumps(
+                                                {
+                                                    "type": "thinking_stream",
+                                                    "content": thinking_part,
+                                                }
+                                            )
+                                        )
+
+                                    # Send thinking end indicator
+                                    await websocket.send_text(
+                                        json.dumps(
+                                            {"type": "thinking_end", "content": ""}
+                                        )
+                                    )
+
+                                    # Send any remaining content after </think> as regular content
+                                    if remaining_part.strip():
+                                        print(
+                                            f"[WEBSOCKET] Sending content after thinking: '{remaining_part}'"
+                                        )
+                                        await websocket.send_text(
+                                            json.dumps(
+                                                {
+                                                    "type": "stream",
+                                                    "content": remaining_part,
+                                                }
+                                            )
+                                        )
+                                else:
+                                    # Regular thinking content
+                                    print(
+                                        f"[WEBSOCKET] Sending thinking content: '{content}'"
+                                    )
                                     await websocket.send_text(
                                         json.dumps(
                                             {
@@ -452,13 +492,12 @@ async def websocket_chat_endpoint(
                                             }
                                         )
                                     )
-                                # Send thinking end indicator
-                                await websocket.send_text(
-                                    json.dumps({"type": "thinking_end", "content": ""})
-                                )
 
                             # Only send regular stream content if not in thinking block and content is not empty
-                            if not in_thinking_block and content.strip():
+                            elif content.strip():
+                                print(
+                                    f"[WEBSOCKET] Sending regular content: '{content}'"
+                                )
                                 await websocket.send_text(
                                     json.dumps({"type": "stream", "content": content})
                                 )
