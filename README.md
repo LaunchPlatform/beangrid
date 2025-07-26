@@ -1,3 +1,35 @@
 [![CircleCI](https://circleci.com/gh/LaunchPlatform/beangrid.svg?style=svg)](https://circleci.com/gh/LaunchPlatform/beangrid)
-# beangrid
-Open-source plaintext based spreadsheet app
+# BeanGrid
+
+A plaintext spreadsheet application with real-time collaboration and AI assistance.
+
+## Features
+
+- **Plaintext YAML Format**: Store spreadsheets in human-readable YAML files
+- **Formula Support**: Excel-like formulas with cross-sheet references
+- **Real-time Chat**: AI assistant for spreadsheet analysis and updates
+- **Web Interface**: Modern React-based UI with real-time updates
+- **Git Integration**: Version control for your spreadsheets
+
+## Configuration
+
+### LLM Settings
+
+The application uses an LLM for AI assistance. You can configure the LLM settings using environment variables:
+
+```bash
+# Set the LLM model
+export LLM_MODEL="ollama/deepseek-r1:32b"
+
+# Set the LLM API base URL
+export LLM_API_BASE="http://192.168.50.71:11434"
+```
+
+Or you can set these in a `.env` file:
+
+```env
+LLM_MODEL=ollama/deepseek-r1:32b
+LLM_API_BASE=http://192.168.50.71:11434
+```
+
+## Installation
