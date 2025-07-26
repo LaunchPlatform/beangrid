@@ -11,11 +11,13 @@ import litellm
 import yaml
 from fastapi import APIRouter
 from fastapi import Body
+from fastapi import Depends
 from fastapi import HTTPException
 from fastapi import Request
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
+from .. import deps
 from ..core.processor import FormulaProcessor
 from ..core.yaml_processor import load_workbook_from_yaml
 from ..core.yaml_processor import save_workbook_to_yaml
@@ -152,17 +154,12 @@ def _get_workbook_file_path():
 
 
 @router.put("/workbook/cell")
-async def update_cell(request: CellUpdateRequest = Body(...)):
+async def update_cell(
+    file_path: deps.YAMLFilePathDeps, request: CellUpdateRequest = Body(...)
+):
     """Update a cell in the workbook and save to YAML file."""
     print(f"Received cell update request: {request}")
     try:
-        file_path = _get_workbook_file_path()
-
-        if not file_path.exists():
-            raise HTTPException(
-                status_code=404, detail=f"Workbook file not found: {file_path}"
-            )
-
         # Load the current workbook
         workbook = load_workbook_from_yaml(file_path)
 
@@ -211,16 +208,9 @@ async def update_cell(request: CellUpdateRequest = Body(...)):
 
 
 @router.get("/workbook/cell/{sheet_name}/{cell_id}")
-async def get_cell(sheet_name: str, cell_id: str):
+async def get_cell(file_path: deps.YAMLFilePathDeps, sheet_name: str, cell_id: str):
     """Get a specific cell from the workbook."""
     try:
-        file_path = _get_workbook_file_path()
-
-        if not file_path.exists():
-            raise HTTPException(
-                status_code=404, detail=f"Workbook file not found: {file_path}"
-            )
-
         # Load the workbook
         workbook = load_workbook_from_yaml(file_path)
 
@@ -261,15 +251,12 @@ async def get_cell(sheet_name: str, cell_id: str):
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(request: Request, chat: ChatRequest = Body(...)):
+async def chat_endpoint(
+    request: Request,
+    yaml_content: deps.YAMLContentDeps,
+    chat: ChatRequest = Body(...),
+):
     """Chat endpoint for LLM interaction with spreadsheet context using litellm."""
-    # Load YAML file as context
-    file_path = _get_workbook_file_path()
-    if not file_path.exists():
-        return ChatResponse(response="No spreadsheet found.")
-    with open(file_path, "r", encoding="utf-8") as f:
-        yaml_content = f.read()
-
     # Compose system prompt
     system_prompt = (
         "You are a helpful spreadsheet assistant. "
@@ -317,19 +304,14 @@ async def chat_endpoint(request: Request, chat: ChatRequest = Body(...)):
 
 
 @router.get("/workbook/yaml", response_class=PlainTextResponse)
-async def get_workbook_yaml():
-    file_path = _get_workbook_file_path()
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="Workbook file not found")
-    with open(file_path, "r", encoding="utf-8") as f:
-        return f.read()
+async def get_workbook_yaml(yaml_content: deps.YAMLContentDeps):
+    return yaml_content
 
 
 @router.put("/workbook/yaml")
-async def update_workbook_yaml(yaml_content: str = Body(..., embed=True)):
-    file_path = _get_workbook_file_path()
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="Workbook file not found")
+async def update_workbook_yaml(
+    file_path: deps.YAMLFilePathDeps, yaml_content: str = Body(..., embed=True)
+):
     try:
         data = yaml.safe_load(yaml_content)
         Workbook.model_validate(data)
@@ -341,10 +323,7 @@ async def update_workbook_yaml(yaml_content: str = Body(..., embed=True)):
 
 
 @router.get("/workbook/yaml-diff", response_class=PlainTextResponse)
-async def get_yaml_diff():
-    file_path = _get_workbook_file_path()
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="Workbook file not found")
+async def get_yaml_diff(file_path: deps.YAMLFilePathDeps):
     try:
         result = subprocess.run(
             ["git", "diff", "--", str(file_path)],
@@ -373,10 +352,9 @@ async def get_yaml_diff():
 
 
 @router.post("/workbook/commit")
-async def commit_yaml_file(message: str = Body(..., embed=True)):
-    file_path = _get_workbook_file_path()
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="Workbook file not found")
+async def commit_yaml_file(
+    file_path: deps.YAMLFilePathDeps, message: str = Body(..., embed=True)
+):
     try:
         subprocess.run(
             ["git", "add", str(file_path)],
