@@ -9,6 +9,9 @@ from fastapi import Depends
 from fastapi import HTTPException
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
+
+from beangrid.core.config import settings
 
 # Get the templates directory
 TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -20,8 +23,8 @@ def get_templates() -> Jinja2Templates:
 
 
 def get_workdir(request: Request) -> Path:
-    # Check for existing session UUID in cookies
-    session_uuid = request.cookies.get("workdir_uuid")
+    # Check for existing session UUID using Starlette sessions
+    session_uuid = request.session.get("workdir_uuid")
 
     if session_uuid:
         # Validate UUID format
@@ -122,8 +125,8 @@ def get_workdir(request: Request) -> Path:
         # Git might not be available, continue without git
         pass
 
-    # Set cookie for session management
-    request.cookies["workdir_uuid"] = new_uuid
+    # Set session for session management using Starlette
+    request.session["workdir_uuid"] = new_uuid
 
     return workdir_path
 
