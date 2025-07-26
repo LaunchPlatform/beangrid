@@ -295,10 +295,17 @@ function ChatSidebar({ onAction }) {
             const data = await response.json();
             setMessages([...newMessages, { role: 'assistant', content: data.response }]);
             setLoading(false);
-            if (data.action === 'update_cell' && data.action_args) {
-                // Ask user to confirm the action
-                if (window.confirm(data.response + '\nApply this change?')) {
-                    onAction(data.action, data.action_args);
+            if (data.action && data.action_args) {
+                if (data.action === 'update_cell') {
+                    // Ask user to confirm the action
+                    if (window.confirm(data.response + '\nApply this change?')) {
+                        onAction(data.action, data.action_args);
+                    }
+                } else if (data.action === 'update_workbook') {
+                    // Ask user to confirm the workbook update
+                    if (window.confirm(data.response + '\nApply this workbook update?')) {
+                        onAction(data.action, data.action_args);
+                    }
                 }
             }
         } catch (err) {
@@ -471,6 +478,20 @@ function App() {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(args)
+            });
+            if (workbookRef.current && workbookRef.current.fetchWorkbook) {
+                workbookRef.current.fetchWorkbook();
+            } else {
+                window.location.reload();
+            }
+        } else if (action === 'update_workbook') {
+            await fetch('/api/v1/workbook/update-from-chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    yaml_content: args.yaml_content,
+                    commit_message: args.commit_message
+                })
             });
             if (workbookRef.current && workbookRef.current.fetchWorkbook) {
                 workbookRef.current.fetchWorkbook();

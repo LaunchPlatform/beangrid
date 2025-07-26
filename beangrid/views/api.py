@@ -46,6 +46,13 @@ class CellUpdateRequest(BaseModel):
     formula: str | None = None
 
 
+class WorkbookUpdateRequest(BaseModel):
+    """Request model for updating the entire workbook."""
+
+    yaml_content: str
+    commit_message: str
+
+
 class ChatRequest(BaseModel):
     message: str
     history: list[dict] = []  # [{role: "user"|"assistant", content: str}]
@@ -227,8 +234,11 @@ async def chat_endpoint(
             "Here is the JSON schema for the spreadsheet:\n"
             f"{json.dumps(SPREADSHEET_SCHEMA, indent=2)}\n\n"
             "Answer the user's questions or suggest spreadsheet updates as needed. "
-            'If you want to suggest an action, respond with a JSON object like: {"action": "update_cell", "action_args": { ... }}. '
-            "Otherwise, just answer in plain text."
+            "You can suggest actions in two ways:\n"
+            '1. For cell updates: {"action": "update_cell", "action_args": {"sheet_name": "Sheet1", "cell_id": "A1", "value": "New Value"}}\n'
+            '2. For full workbook updates: {"action": "update_workbook", "action_args": {"yaml_content": "complete yaml content here", "commit_message": "Description of changes"}}\n'
+            "When suggesting workbook updates, provide the complete YAML content (not just the changes) and a clear commit message describing what was changed. "
+            "The yaml_content should be the full workbook YAML, not just the modified parts."
         )
         yaml_system_message = {
             "role": "system",
