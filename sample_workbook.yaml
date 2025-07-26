@@ -14,7 +14,7 @@ sheets:
   - id: B2
     value: '10.50'
   - id: C2
-    value: '5'
+    value: '4'
   - id: D2
     formula: =B2*C2
   - id: A3
@@ -22,7 +22,7 @@ sheets:
   - id: B3
     value: '15.75'
   - id: C3
-    value: '5'
+    value: '11'
   - id: D3
     formula: =B3*C3
   - id: A4

@@ -388,10 +388,83 @@ function YamlEditor({ onClose, onSaved }) {
     );
 }
 
+function DiffView() {
+    const [diff, setDiff] = React.useState('');
+    const [loading, setLoading] = React.useState(true);
+    const [error, setError] = React.useState(null);
+    const [commitMsg, setCommitMsg] = React.useState('');
+    const [committing, setCommitting] = React.useState(false);
+    const [commitResult, setCommitResult] = React.useState(null);
+    const fetchDiff = React.useCallback(() => {
+        setLoading(true);
+        setError(null);
+        fetch('/api/v1/workbook/yaml-diff')
+            .then(r => r.text())
+            .then(setDiff)
+            .catch(e => setError(e.message))
+            .finally(() => setLoading(false));
+    }, []);
+    React.useEffect(() => { fetchDiff(); }, [fetchDiff]);
+    const handleCommit = async () => {
+        setCommitting(true);
+        setCommitResult(null);
+        try {
+            const resp = await fetch('/api/v1/workbook/commit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: commitMsg })
+            });
+            const data = await resp.json();
+            if (!resp.ok) {
+                setCommitResult(data.detail || 'Commit failed');
+            } else {
+                setCommitResult('Committed!');
+                setCommitMsg('');
+                fetchDiff();
+            }
+        } catch (e) {
+            setCommitResult(e.message);
+        } finally {
+            setCommitting(false);
+        }
+    };
+    return (
+        <div className="diff-view">
+            <div className="diff-header">YAML Git Diff</div>
+            {loading ? <div>Loading...</div> : (
+                <pre className="diff-block">
+                  {diff
+                    ? diff.split('\n').map((line, i) => {
+                        let cls = '';
+                        if (line.startsWith('+') && !line.startsWith('+++')) cls = 'diff-add';
+                        else if (line.startsWith('-') && !line.startsWith('---')) cls = 'diff-del';
+                        else if (line.startsWith('@@')) cls = 'diff-hunk';
+                        return (
+                          <span key={i} className={cls}>{line + '\n'}</span>
+                        );
+                      })
+                    : 'No changes'}
+                </pre>
+            )}
+            {error && <div className="diff-error">{error}</div>}
+            <div className="commit-ui">
+                <input
+                    type="text"
+                    value={commitMsg}
+                    onChange={e => setCommitMsg(e.target.value)}
+                    placeholder="Commit message"
+                    disabled={committing}
+                />
+                <button onClick={handleCommit} disabled={committing || !commitMsg.trim()}>Commit Changes</button>
+                {commitResult && <span className="commit-result">{commitResult}</span>}
+            </div>
+        </div>
+    );
+}
+
 function App() {
     const [tab, setTab] = React.useState('spreadsheet');
     const workbookRef = React.useRef();
-    const [showYaml, setShowYaml] = React.useState(false);
     const handleLLMAction = async (action, args) => {
         if (action === 'update_cell') {
             await fetch('/api/v1/workbook/cell', {
@@ -407,7 +480,6 @@ function App() {
         }
     };
     const handleYamlSaved = () => {
-        setShowYaml(false);
         window.location.reload();
     };
     return (
@@ -416,9 +488,11 @@ function App() {
                 <div className="tab-bar">
                     <button className={tab === 'spreadsheet' ? 'active' : ''} onClick={() => setTab('spreadsheet')}>Spreadsheet</button>
                     <button className={tab === 'yaml' ? 'active' : ''} onClick={() => setTab('yaml')}>YAML</button>
+                    <button className={tab === 'diff' ? 'active' : ''} onClick={() => setTab('diff')}>Diff</button>
                 </div>
                 {tab === 'spreadsheet' && <WorkbookViewer ref={workbookRef} />}
                 {tab === 'yaml' && <YamlEditor onClose={() => setTab('spreadsheet')} onSaved={handleYamlSaved} />}
+                {tab === 'diff' && <DiffView />}
             </div>
             <ChatSidebar onAction={handleLLMAction} />
         </div>

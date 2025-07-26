@@ -1,4 +1,5 @@
 import os
+import subprocess
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -305,3 +306,56 @@ async def update_workbook_yaml(yaml_content: str = Body(..., embed=True)):
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(yaml_content)
     return {"message": "YAML updated successfully"}
+
+
+@router.get("/workbook/yaml-diff", response_class=PlainTextResponse)
+async def get_yaml_diff():
+    file_path = _get_workbook_file_path()
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Workbook file not found")
+    try:
+        result = subprocess.run(
+            ["git", "diff", "--", str(file_path)],
+            cwd=file_path.parent,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        diff = result.stdout
+        if not diff:
+            # If no diff, check if file is untracked
+            status = subprocess.run(
+                ["git", "ls-files", "--others", "--exclude-standard", str(file_path)],
+                cwd=file_path.parent,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if status.stdout.strip():
+                with open(file_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                diff = f"--- /dev/null\n+++ b/{file_path.name}\n@@ ... @@\n{content}"
+        return diff or "No changes"
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Git diff error: {e}")
+
+
+@router.post("/workbook/commit")
+async def commit_yaml_file(message: str = Body(..., embed=True)):
+    file_path = _get_workbook_file_path()
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Workbook file not found")
+    try:
+        subprocess.run(
+            ["git", "add", str(file_path)],
+            cwd=file_path.parent,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "commit", "-m", message],
+            cwd=file_path.parent,
+            check=True,
+        )
+        return {"message": "Committed successfully"}
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(status_code=500, detail=f"Git commit error: {e}")
