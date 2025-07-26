@@ -1,72 +1,75 @@
 import tempfile
 from pathlib import Path
 
+import pytest
 import yaml
 
-from beangrid.core.yaml_processor import create_sample_workbook
 from beangrid.core.yaml_processor import load_workbook_from_yaml
 from beangrid.core.yaml_processor import load_workbook_from_yaml_fileobj
 from beangrid.core.yaml_processor import save_workbook_to_yaml
 from beangrid.core.yaml_processor import save_workbook_to_yaml_fileobj
+from beangrid.scheme.cell import Workbook
 
 
-def test_create_sample_workbook():
-    """Test creating a sample workbook."""
-    workbook = create_sample_workbook()
+@pytest.fixture
+def sample_workbook() -> Workbook:
+    """Load sample workbook from fixtures."""
+    fixture_path = Path(__file__).parent / "fixtures" / "sample_workbook.yaml"
+    return load_workbook_from_yaml(fixture_path)
 
-    assert len(workbook.sheets) == 1
-    assert workbook.sheets[0].name == "Sales"
-    assert len(workbook.sheets[0].cells) == 16
+
+@pytest.fixture
+def multi_sheet_workbook() -> Workbook:
+    """Load multi-sheet workbook from fixtures."""
+    fixture_path = Path(__file__).parent / "fixtures" / "multi_sheet_workbook.yaml"
+    return load_workbook_from_yaml(fixture_path)
+
+
+def test_sample_workbook(sample_workbook: Workbook):
+    """Test loading sample workbook from fixture."""
+    assert len(sample_workbook.sheets) == 1
+    assert sample_workbook.sheets[0].name == "Sales"
+    assert len(sample_workbook.sheets[0].cells) == 16
 
     # Check some specific cells
-    cell_dict = workbook.sheets[0].get_cell_dict()
+    cell_dict = sample_workbook.sheets[0].get_cell_dict()
     assert cell_dict["A1"].value == "Product"
     assert cell_dict["D2"].formula == "=B2*C2"
     assert cell_dict["D4"].formula == "=SUM(D2:D3)"
 
 
-def test_save_and_load_workbook():
+def test_save_and_load_workbook(sample_workbook: Workbook, tmp_path: Path):
     """Test saving and loading a workbook from YAML."""
-    workbook = create_sample_workbook()
+    temp_path = tmp_path / "workbook.yaml"
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-        temp_path = f.name
+    # Save workbook to YAML
+    save_workbook_to_yaml(sample_workbook, temp_path)
 
-    try:
-        # Save workbook to YAML
-        save_workbook_to_yaml(workbook, temp_path)
+    # Load workbook from YAML
+    loaded_workbook = load_workbook_from_yaml(temp_path)
 
-        # Load workbook from YAML
-        loaded_workbook = load_workbook_from_yaml(temp_path)
+    # Verify the loaded workbook matches the original
+    assert len(loaded_workbook.sheets) == len(sample_workbook.sheets)
+    assert loaded_workbook.sheets[0].name == sample_workbook.sheets[0].name
+    assert len(loaded_workbook.sheets[0].cells) == len(sample_workbook.sheets[0].cells)
 
-        # Verify the loaded workbook matches the original
-        assert len(loaded_workbook.sheets) == len(workbook.sheets)
-        assert loaded_workbook.sheets[0].name == workbook.sheets[0].name
-        assert len(loaded_workbook.sheets[0].cells) == len(workbook.sheets[0].cells)
+    # Check specific cells
+    original_cells = {cell.id: cell for cell in sample_workbook.sheets[0].cells}
+    loaded_cells = {cell.id: cell for cell in loaded_workbook.sheets[0].cells}
 
-        # Check specific cells
-        original_cells = {cell.id: cell for cell in workbook.sheets[0].cells}
-        loaded_cells = {cell.id: cell for cell in loaded_workbook.sheets[0].cells}
-
-        for cell_id in original_cells:
-            assert cell_id in loaded_cells
-            assert original_cells[cell_id].value == loaded_cells[cell_id].value
-            assert original_cells[cell_id].formula == loaded_cells[cell_id].formula
-
-    finally:
-        # Clean up
-        Path(temp_path).unlink(missing_ok=True)
+    for cell_id in original_cells:
+        assert cell_id in loaded_cells
+        assert original_cells[cell_id].value == loaded_cells[cell_id].value
+        assert original_cells[cell_id].formula == loaded_cells[cell_id].formula
 
 
-def test_save_and_load_workbook_fileobj():
+def test_save_and_load_workbook_fileobj(sample_workbook: Workbook):
     """Test saving and loading a workbook using file objects."""
-    workbook = create_sample_workbook()
-
     # Save to string buffer
     import io
 
     buffer = io.StringIO()
-    save_workbook_to_yaml_fileobj(workbook, buffer)
+    save_workbook_to_yaml_fileobj(sample_workbook, buffer)
 
     # Reset buffer position
     buffer.seek(0)
@@ -75,18 +78,16 @@ def test_save_and_load_workbook_fileobj():
     loaded_workbook = load_workbook_from_yaml_fileobj(buffer)
 
     # Verify the loaded workbook matches the original
-    assert len(loaded_workbook.sheets) == len(workbook.sheets)
-    assert loaded_workbook.sheets[0].name == workbook.sheets[0].name
+    assert len(loaded_workbook.sheets) == len(sample_workbook.sheets)
+    assert loaded_workbook.sheets[0].name == sample_workbook.sheets[0].name
 
 
-def test_yaml_format():
+def test_yaml_format(sample_workbook: Workbook):
     """Test that the YAML output has the expected format."""
-    workbook = create_sample_workbook()
-
     import io
 
     buffer = io.StringIO()
-    save_workbook_to_yaml_fileobj(workbook, buffer)
+    save_workbook_to_yaml_fileobj(sample_workbook, buffer)
 
     yaml_content = buffer.getvalue()
 
@@ -104,10 +105,21 @@ def test_yaml_format():
     assert "value" not in cells["D2"]  # Should not have value if it's a formula cell
 
 
-if __name__ == "__main__":
-    # Run tests
-    test_create_sample_workbook()
-    test_save_and_load_workbook()
-    test_save_and_load_workbook_fileobj()
-    test_yaml_format()
-    print("All tests passed!")
+def test_multi_sheet_workbook(multi_sheet_workbook: Workbook):
+    """Test loading multi-sheet workbook from fixture."""
+    assert len(multi_sheet_workbook.sheets) == 2
+    assert multi_sheet_workbook.sheets[0].name == "Sales"
+    assert multi_sheet_workbook.sheets[1].name == "Summary"
+
+    # Check Sales sheet
+    sales_cells = {cell.id: cell for cell in multi_sheet_workbook.sheets[0].cells}
+    assert sales_cells["A1"].value == "Product"
+    assert sales_cells["D2"].formula == "=B2*C2"
+    assert sales_cells["D4"].formula == "=SUM(D2:D3)"
+
+    # Check Summary sheet
+    summary_cells = {cell.id: cell for cell in multi_sheet_workbook.sheets[1].cells}
+    assert summary_cells["A1"].value == "Summary Report"
+    assert summary_cells["B2"].formula == "=Sales!D4"
+    assert summary_cells["B3"].formula == "=AVERAGE(Sales!B2:B3)"
+    assert summary_cells["B4"].formula == "=SUM(Sales!C2:C3)"

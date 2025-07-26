@@ -1,0 +1,35 @@
+sheets:
+  - name: Sales
+    cells:
+      - id: A1
+        value: Product
+      - id: B1
+        value: Price
+      - id: C1
+        value: Quantity
+      - id: D1
+        value: Total
+      - id: A2
+        value: Apple
+      - id: B2
+        value: "1.50"
+      - id: C2
+        value: "10"
+      - id: D2
+        formula: "=B2*C2"
+      - id: A3
+        value: Banana
+      - id: B3
+        value: "0.75"
+      - id: C3
+        value: "15"
+      - id: D3
+        formula: "=B3*C3"
+      - id: A4
+        value: Total
+      - id: B4
+        value: null
+      - id: C4
+        value: null
+      - id: D4
+        formula: "=SUM(D2:D3)" 

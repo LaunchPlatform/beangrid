@@ -171,33 +171,3 @@ def _workbook_to_dict(workbook: Workbook) -> Dict[str, Any]:
         sheets_data.append(sheet_data)
 
     return {"sheets": sheets_data}
-
-
-def create_sample_workbook() -> Workbook:
-    """
-    Create a sample workbook for testing purposes.
-
-    Returns:
-        A sample Workbook with some example data
-    """
-    cells = [
-        Cell(id="A1", value="Product", formula=None),
-        Cell(id="B1", value="Price", formula=None),
-        Cell(id="C1", value="Quantity", formula=None),
-        Cell(id="D1", value="Total", formula=None),
-        Cell(id="A2", value="Apple", formula=None),
-        Cell(id="B2", value="1.50", formula=None),
-        Cell(id="C2", value="10", formula=None),
-        Cell(id="D2", value=None, formula="=B2*C2"),
-        Cell(id="A3", value="Banana", formula=None),
-        Cell(id="B3", value="0.75", formula=None),
-        Cell(id="C3", value="15", formula=None),
-        Cell(id="D3", value=None, formula="=B3*C3"),
-        Cell(id="A4", value="Total", formula=None),
-        Cell(id="B4", value=None, formula=None),
-        Cell(id="C4", value=None, formula=None),
-        Cell(id="D4", value=None, formula="=SUM(D2:D3)"),
-    ]
-
-    sheet = Sheet(name="Sales", cells=cells)
-    return Workbook(sheets=[sheet])

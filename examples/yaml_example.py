@@ -2,16 +2,20 @@
 """
 Example script demonstrating how to use the YAML processor module.
 """
+from pathlib import Path
+
 from beangrid.core.processor import FormulaProcessor
-from beangrid.core.yaml_processor import create_sample_workbook
 from beangrid.core.yaml_processor import load_workbook_from_yaml
 from beangrid.core.yaml_processor import save_workbook_to_yaml
 
 
 def main():
     """Demonstrate YAML workbook processing."""
-    print("Creating sample workbook...")
-    workbook = create_sample_workbook()
+    print("Loading sample workbook from fixtures...")
+    fixture_path = (
+        Path(__file__).parent.parent / "tests" / "fixtures" / "sample_workbook.yaml"
+    )
+    workbook = load_workbook_from_yaml(fixture_path)
 
     # Save to YAML file
     yaml_file = "sample_workbook.yaml"
