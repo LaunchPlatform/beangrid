@@ -6,6 +6,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Set
+from typing import Tuple
 
 from .ast import Cell
 from .ast import CellRange
@@ -98,9 +99,19 @@ class FormulaProcessor(Processor):
         else:
             value = cell.value
 
+        # Format values appropriately
+        if value is None:
+            formatted_value = None
+        elif isinstance(value, bool):
+            formatted_value = str(value)
+        elif isinstance(value, (int, float)):
+            formatted_value = f"{float(value):.1f}"
+        else:
+            formatted_value = str(value)
+
         return SchemeCell(
             id=cell.id,
-            value=str(value) if value is not None else None,
+            value=formatted_value,
             formula=cell.formula,
         )
 
@@ -120,6 +131,10 @@ class FormulaProcessor(Processor):
 
             for dep in dependencies:
                 self.dependency_graph.add_dependency(cell_id, dep)
+            
+            # Ensure the cell is added to the dependency graph even if it has no dependencies
+            if cell_id not in self.dependency_graph.dependencies:
+                self.dependency_graph.dependencies[cell_id] = set()
         except Exception:
             # If parsing fails, skip this cell
             pass
@@ -219,8 +234,13 @@ class FormulaProcessor(Processor):
                 if cell is None:
                     return None
 
-                # If cell has a formula, return None to avoid circular dependencies
+                # If cell has a formula, check if we have a computed value
                 if cell.formula:
+                    # Check if we have a computed value for this cell
+                    cell_key = f"{sheet_name}!{cell.id}" if sheet_name else cell.id
+                    if cell_key in self.computed_values:
+                        return self.computed_values[cell_key]
+                    # If no computed value yet, return None to avoid circular dependencies
                     return None
 
                 # Convert string values to appropriate types
@@ -236,6 +256,57 @@ class FormulaProcessor(Processor):
                 except ValueError:
                     # If not a number, return as string
                     return cell.value
+
+            def get_cell_range_values(
+                self, start_cell: str, end_cell: str, current_sheet: str = ""
+            ) -> List[Any]:
+                """Get values from a cell range."""
+                # Parse cell references to get row/column numbers
+                start_col, start_row = self._parse_cell_ref(start_cell)
+                end_col, end_row = self._parse_cell_ref(end_cell)
+
+                values = []
+                for row in range(start_row, end_row + 1):
+                    for col in range(start_col, end_col + 1):
+                        cell_ref = self._format_cell_ref(col, row)
+                        value = self.get_cell_value(cell_ref, current_sheet)
+                        values.append(value)
+
+                return values
+
+            def _parse_cell_ref(self, cell_ref: str) -> Tuple[int, int]:
+                """Parse cell reference like 'A1' to (column, row)."""
+                import re
+                match = re.match(r"([A-Z]+)(\d+)", cell_ref)
+                if not match:
+                    raise ValueError(f"Invalid cell reference: {cell_ref}")
+
+                col_str, row_str = match.groups()
+                col = self._column_to_number(col_str)
+                row = int(row_str)
+
+                return col, row
+
+            def _format_cell_ref(self, col: int, row: int) -> str:
+                """Format column and row numbers to cell reference like 'A1'."""
+                col_str = self._number_to_column(col)
+                return f"{col_str}{row}"
+
+            def _column_to_number(self, col_str: str) -> int:
+                """Convert column string like 'A' to number."""
+                result = 0
+                for char in col_str:
+                    result = result * 26 + (ord(char.upper()) - ord("A") + 1)
+                return result
+
+            def _number_to_column(self, col_num: int) -> str:
+                """Convert column number to string like 'A'."""
+                result = ""
+                while col_num > 0:
+                    col_num -= 1
+                    result = chr(ord("A") + (col_num % 26)) + result
+                    col_num //= 26
+                return result
 
         # Create evaluator with custom resolver
         evaluator.resolver = ComputedCellResolver(workbook, self.evaluated_cells)

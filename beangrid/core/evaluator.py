@@ -188,7 +188,8 @@ class FormulaEvaluator:
     def _evaluate_function(self, func_call: FuncCall) -> Any:
         """Evaluate a function call."""
         func_name = func_call.name.upper()
-        args = [self._evaluate_ast(arg) for arg in func_call.args]
+        # Filter out None arguments (from empty function calls)
+        args = [self._evaluate_ast(arg) for arg in func_call.args if arg is not None]
 
         if func_name == "SUM":
             return self._sum(args)
@@ -203,7 +204,7 @@ class FormulaEvaluator:
         elif func_name == "IF":
             return self._if(args)
         else:
-            return f"#NAME? Unknown function: {func_name}"
+            return "#NAME?"
 
     def _evaluate_binary_op(self, bin_op: BinOp) -> Any:
         """Evaluate a binary operation."""
@@ -387,11 +388,21 @@ class DependencyGraph:
         """Get cells in dependency order for evaluation."""
         # Simple topological sort
         in_degree = defaultdict(int)
+        
+        # Initialize in_degree for all cells that have dependencies
         for cell_id, deps in self.dependencies.items():
             for dep in deps:
                 in_degree[cell_id] += 1
+                # Also initialize in_degree for dependencies that might not be in self.dependencies
+                if dep not in in_degree:
+                    in_degree[dep] = 0
 
-        queue = [cell_id for cell_id in self.dependencies if in_degree[cell_id] == 0]
+        # Add all cells from dependencies to in_degree if they're not already there
+        for cell_id in self.dependencies:
+            if cell_id not in in_degree:
+                in_degree[cell_id] = 0
+
+        queue = [cell_id for cell_id in in_degree if in_degree[cell_id] == 0]
         result = []
 
         while queue:
