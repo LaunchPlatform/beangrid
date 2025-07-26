@@ -1,10 +1,13 @@
+import json as _json
 import os
+import re
 import subprocess
 from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
 
+import litellm
 import yaml
 from fastapi import APIRouter
 from fastapi import Body
@@ -259,29 +262,58 @@ async def get_cell(sheet_name: str, cell_id: str):
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: Request, chat: ChatRequest = Body(...)):
-    """Chat endpoint for LLM interaction with spreadsheet context."""
+    """Chat endpoint for LLM interaction with spreadsheet context using litellm."""
     # Load YAML file as context
     file_path = _get_workbook_file_path()
     if not file_path.exists():
         return ChatResponse(response="No spreadsheet found.")
     with open(file_path, "r", encoding="utf-8") as f:
         yaml_content = f.read()
-    # Provide context to the LLM (mocked for now)
-    context = {
-        "yaml": yaml_content,
-        "schema": SPREADSHEET_SCHEMA,
-        "history": chat.history,
-        "user_message": chat.message,
-    }
-    # Mock LLM: echo the message and suggest an update if asked
-    if "update" in chat.message.lower():
-        # Example: suggest updating A1 in Sheet1
-        return ChatResponse(
-            response="I suggest updating cell A1 in Sheet1 to value '42'. Do you want to apply this?",
-            action="update_cell",
-            action_args={"sheet_name": "Sheet1", "cell_id": "A1", "value": "42"},
+
+    # Compose system prompt
+    system_prompt = (
+        "You are a helpful spreadsheet assistant. "
+        "The user is working with a spreadsheet in YAML format. "
+        "Here is the spreadsheet YAML:\n"
+        f"{yaml_content}\n\n"
+        "Here is the JSON schema for the spreadsheet:\n"
+        f"{_json.dumps(SPREADSHEET_SCHEMA, indent=2)}\n\n"
+        "Answer the user's questions or suggest spreadsheet updates as needed. "
+        'If you want to suggest an action, respond with a JSON object like: {"action": "update_cell", "action_args": { ... }}. '
+        "Otherwise, just answer in plain text."
+    )
+
+    # Prepare chat history for LLM
+    messages = [{"role": "system", "content": system_prompt}]
+    for msg in chat.history:
+        messages.append({"role": msg["role"], "content": msg["content"]})
+    messages.append({"role": "user", "content": chat.message})
+
+    # Call LLM via litellm (default: openai/gpt-3.5-turbo, or configure for ollama)
+    try:
+        response = await litellm.acompletion(
+            model="ollama/deepseek-r1:32b",  # Change to your preferred model
+            messages=messages,
+            stream=False,
+            api_base="http://192.168.50.71:11434",
         )
-    return ChatResponse(response=f"You said: {chat.message}")
+        llm_reply = response["choices"][0]["message"]["content"]
+    except Exception as e:
+        return ChatResponse(response=f"LLM error: {e}")
+
+    # Try to extract action from LLM reply if present
+    action = None
+    action_args = None
+    # Look for a JSON object in the reply
+    match = re.search(r'\{\s*"action"\s*:\s*"[^"]+".*\}', llm_reply, re.DOTALL)
+    if match:
+        try:
+            action_json = _json.loads(match.group(0))
+            action = action_json.get("action")
+            action_args = action_json.get("action_args")
+        except Exception:
+            pass
+    return ChatResponse(response=llm_reply, action=action, action_args=action_args)
 
 
 @router.get("/workbook/yaml", response_class=PlainTextResponse)
