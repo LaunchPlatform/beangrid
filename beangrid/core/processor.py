@@ -153,15 +153,19 @@ class FormulaProcessor(Processor):
             start_ref = ast.start.ref
             end_ref = ast.end.ref
 
+            # Determine the sheet reference for the range
+            sheet_ref = None
             if ast.start.sheet:
-                start_ref = f"{ast.start.sheet}!{start_ref}"
+                sheet_ref = ast.start.sheet
+            elif ast.end.sheet:
+                sheet_ref = ast.end.sheet
             elif current_sheet:
-                start_ref = f"{current_sheet}!{start_ref}"
+                sheet_ref = current_sheet
 
-            if ast.end.sheet:
-                end_ref = f"{ast.end.sheet}!{end_ref}"
-            elif current_sheet:
-                end_ref = f"{current_sheet}!{end_ref}"
+            # Apply sheet reference to both start and end cells
+            if sheet_ref:
+                start_ref = f"{sheet_ref}!{start_ref}"
+                end_ref = f"{sheet_ref}!{end_ref}"
 
             dependencies.add(start_ref)
             dependencies.add(end_ref)
