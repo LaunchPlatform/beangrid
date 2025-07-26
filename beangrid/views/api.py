@@ -60,22 +60,8 @@ class ChatResponse(BaseModel):
 
 
 @router.get("/workbook", response_model=WorkbookResponse)
-async def get_workbook():
-    """Get workbook data from the file specified by WORKBOOK_FILE environment variable."""
-    workbook_file = os.getenv("WORKBOOK_FILE")
-
-    if not workbook_file:
-        # Use default sample workbook if not provided
-        workbook_file = str(
-            Path(__file__).parent.parent.parent / "sample_workbook.yaml"
-        )
-
-    file_path = Path(workbook_file)
-    if not file_path.exists():
-        raise HTTPException(
-            status_code=404, detail=f"Workbook file not found: {workbook_file}"
-        )
-
+async def get_workbook(file_path: deps.YAMLFilePathDeps):
+    """Get workbook data from the file specified by workdir."""
     try:
         # Load the workbook
         workbook = load_workbook_from_yaml(file_path)
@@ -103,22 +89,8 @@ async def get_workbook():
 
 
 @router.get("/workbook/raw")
-async def get_raw_workbook():
+async def get_raw_workbook(file_path: deps.YAMLFilePathDeps):
     """Get raw workbook data without processing formulas."""
-    workbook_file = os.getenv("WORKBOOK_FILE")
-
-    if not workbook_file:
-        # Use default sample workbook if not provided
-        workbook_file = str(
-            Path(__file__).parent.parent.parent / "sample_workbook.yaml"
-        )
-
-    file_path = Path(workbook_file)
-    if not file_path.exists():
-        raise HTTPException(
-            status_code=404, detail=f"Workbook file not found: {workbook_file}"
-        )
-
     try:
         # Load the workbook without processing
         workbook = load_workbook_from_yaml(file_path)
@@ -336,11 +308,12 @@ async def update_workbook_yaml(
 
 
 @router.get("/workbook/yaml-diff", response_class=PlainTextResponse)
-async def get_yaml_diff(file_path: deps.YAMLFilePathDeps):
+async def get_yaml_diff(workdir: deps.WorkdirDeps):
     try:
+        workbook_file = workdir / "workbook.yaml"
         result = subprocess.run(
-            ["git", "diff", "--", str(file_path)],
-            cwd=file_path.parent,
+            ["git", "diff", "--", str(workbook_file)],
+            cwd=workdir,
             capture_output=True,
             text=True,
             check=False,
@@ -349,16 +322,24 @@ async def get_yaml_diff(file_path: deps.YAMLFilePathDeps):
         if not diff:
             # If no diff, check if file is untracked
             status = subprocess.run(
-                ["git", "ls-files", "--others", "--exclude-standard", str(file_path)],
-                cwd=file_path.parent,
+                [
+                    "git",
+                    "ls-files",
+                    "--others",
+                    "--exclude-standard",
+                    str(workbook_file),
+                ],
+                cwd=workdir,
                 capture_output=True,
                 text=True,
                 check=False,
             )
             if status.stdout.strip():
-                with open(file_path, "r", encoding="utf-8") as f:
+                with open(workbook_file, "r", encoding="utf-8") as f:
                     content = f.read()
-                diff = f"--- /dev/null\n+++ b/{file_path.name}\n@@ ... @@\n{content}"
+                diff = (
+                    f"--- /dev/null\n+++ b/{workbook_file.name}\n@@ ... @@\n{content}"
+                )
         return diff or "No changes"
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Git diff error: {e}")
@@ -366,17 +347,18 @@ async def get_yaml_diff(file_path: deps.YAMLFilePathDeps):
 
 @router.post("/workbook/commit")
 async def commit_yaml_file(
-    file_path: deps.YAMLFilePathDeps, message: str = Body(..., embed=True)
+    workdir: deps.WorkdirDeps, message: str = Body(..., embed=True)
 ):
     try:
+        workbook_file = workdir / "workbook.yaml"
         subprocess.run(
-            ["git", "add", str(file_path)],
-            cwd=file_path.parent,
+            ["git", "add", str(workbook_file)],
+            cwd=workdir,
             check=True,
         )
         subprocess.run(
             ["git", "commit", "-m", message],
-            cwd=file_path.parent,
+            cwd=workdir,
             check=True,
         )
         return {"message": "Committed successfully"}
