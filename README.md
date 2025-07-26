@@ -22,14 +22,14 @@ The application uses an LLM for AI assistance. You can configure the LLM setting
 export LLM_MODEL="ollama/deepseek-r1:32b"
 
 # Set the LLM API base URL
-export LLM_API_BASE="http://192.168.50.71:11434"
+export LLM_API_BASE="http://192.168.1.123:11434"
 ```
 
 Or you can set these in a `.env` file:
 
 ```env
 LLM_MODEL=ollama/deepseek-r1:32b
-LLM_API_BASE=http://192.168.50.71:11434
+LLM_API_BASE=http://192.168.1.123:11434
 ```
 
 ## Installation
