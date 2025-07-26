@@ -720,4 +720,21 @@ h1 {
 
 .chat-loading span {
     margin-top: 0.5rem;
+}
+
+.chat-loading-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+    margin: 0.5rem 0;
+}
+
+.chat-loading-indicator .spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #e9ecef;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
 } 

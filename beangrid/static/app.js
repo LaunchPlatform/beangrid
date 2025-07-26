@@ -541,7 +541,11 @@ function ChatSidebar({ onAction }) {
                 ) : (
                     <>
                         {messages.map((msg, i) => renderMessage(msg, i))}
-                        {loading && <div className="chat-msg assistant thinking">🤔 Thinking...</div>}
+                        {loading && (
+                            <div className="chat-loading-indicator">
+                                <div className="spinner"></div>
+                            </div>
+                        )}
                     </>
                 )}
             </div>

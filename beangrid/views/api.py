@@ -435,8 +435,17 @@ async def websocket_chat_endpoint(
                             if "</think>" in content:
                                 in_thinking_block = False
                                 thinking_complete = True
-                                # Remove the </think> tag from content
+                                # Remove the </think> tag from content and send remaining thinking content
                                 content = content.replace("</think>", "")
+                                if content.strip():
+                                    await websocket.send_text(
+                                        json.dumps(
+                                            {
+                                                "type": "thinking_stream",
+                                                "content": content,
+                                            }
+                                        )
+                                    )
                                 # Send thinking end indicator
                                 await websocket.send_text(
                                     json.dumps({"type": "thinking_end", "content": ""})
