@@ -5,6 +5,7 @@ from typing import Dict
 from typing import List
 from typing import Set
 from typing import Tuple
+
 from .evaluator import DependencyGraph
 from .evaluator import FormulaEvaluator
 from .parser import parse_excel_formula
@@ -126,7 +127,7 @@ class FormulaProcessor(Processor):
 
             for dep in dependencies:
                 self.dependency_graph.add_dependency(cell_id, dep)
-            
+
             # Ensure the cell is added to the dependency graph even if it has no dependencies
             if cell_id not in self.dependency_graph.dependencies:
                 self.dependency_graph.dependencies[cell_id] = set()
@@ -272,6 +273,7 @@ class FormulaProcessor(Processor):
             def _parse_cell_ref(self, cell_ref: str) -> Tuple[int, int]:
                 """Parse cell reference like 'A1' to (column, row)."""
                 import re
+
                 match = re.match(r"([A-Z]+)(\d+)", cell_ref)
                 if not match:
                     raise ValueError(f"Invalid cell reference: {cell_ref}")
