@@ -6,6 +6,8 @@ function WorkbookViewer() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeSheet, setActiveSheet] = useState(0);
+    const [selectedCell, setSelectedCell] = useState(null);
+    const [formulaBar, setFormulaBar] = useState({ value: '', formula: '', showFormula: false });
 
     useEffect(() => {
         fetchWorkbook();
@@ -29,15 +31,70 @@ function WorkbookViewer() {
         }
     };
 
-    const renderCell = (cell) => {
+    const handleCellClick = (cell, sheetName) => {
+        setSelectedCell({ ...cell, sheetName });
+        setFormulaBar({
+            value: cell.value || '',
+            formula: cell.formula || '',
+            showFormula: !!(cell.formula && cell.formula.trim())
+        });
+    };
+
+    const handleFormulaBarChange = (field, value) => {
+        setFormulaBar({
+            ...formulaBar,
+            [field]: value
+        });
+    };
+
+    const handleCellUpdate = async () => {
+        if (!selectedCell) return;
+
+        try {
+            const response = await fetch('/api/v1/workbook/cell', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    sheet_name: selectedCell.sheetName,
+                    cell_id: selectedCell.id,
+                    value: formulaBar.showFormula ? null : formulaBar.value,
+                    formula: formulaBar.showFormula ? formulaBar.formula : null
+                })
+            });
+
+            if (response.ok) {
+                // Refresh the workbook data
+                await fetchWorkbook();
+                // Keep the cell selected but clear the formula bar
+                setFormulaBar({ value: '', formula: '', showFormula: false });
+            } else {
+                const errorData = await response.json();
+                alert('Error updating cell: ' + errorData.detail);
+            }
+        } catch (err) {
+            alert('Error updating cell: ' + err.message);
+        }
+    };
+
+    const handleFormulaBarKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            handleCellUpdate();
+        }
+    };
+
+    const renderCell = (cell, sheetName) => {
         const hasFormula = cell.formula && cell.formula.trim() !== '';
         const displayValue = hasFormula ? cell.value : (cell.value || '');
+        const isSelected = selectedCell && selectedCell.id === cell.id && selectedCell.sheetName === sheetName;
         
         return (
             <td 
                 key={cell.id} 
-                className={`cell ${hasFormula ? 'has-formula' : ''}`}
-                title={hasFormula ? `Formula: ${cell.formula}` : ''}
+                className={`cell ${hasFormula ? 'has-formula' : ''} clickable ${isSelected ? 'selected' : ''}`}
+                title={hasFormula ? `Formula: ${cell.formula}` : 'Click to select'}
+                onClick={() => handleCellClick(cell, sheetName)}
             >
                 {displayValue}
             </td>
@@ -86,8 +143,8 @@ function WorkbookViewer() {
                                     <td className="row-header">{row}</td>
                                     {sortedCols.map(col => (
                                         grid[row] && grid[row][col] 
-                                            ? renderCell(grid[row][col])
-                                            : <td key={col}></td>
+                                            ? renderCell(grid[row][col], sheet.name)
+                                            : <td key={col} className="cell clickable" onClick={() => handleCellClick({id: col+row, value: '', formula: ''}, sheet.name)}></td>
                                     ))}
                                 </tr>
                             ))}
@@ -130,11 +187,16 @@ function WorkbookViewer() {
         <div className="workbook-viewer">
             <div className="header">
                 <h1>BeanGrid Workbook Viewer</h1>
-                {workbook.processed && (
-                    <div className="status processed">
-                        ✓ Formulas processed
-                    </div>
-                )}
+                <div className="header-actions">
+                    {workbook.processed && (
+                        <div className="status processed">
+                            ✓ Formulas processed
+                        </div>
+                    )}
+                    <button onClick={fetchWorkbook} className="btn-refresh">
+                        🔄 Refresh
+                    </button>
+                </div>
             </div>
             
             {workbook.sheets.length > 1 && (

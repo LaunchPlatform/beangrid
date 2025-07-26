@@ -100,6 +100,28 @@ h1 {
     border-bottom: 2px solid #eee;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.btn-refresh {
+    padding: 0.5rem 1rem;
+    border: 1px solid #007bff;
+    background: white;
+    color: #007bff;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-refresh:hover {
+    background: #007bff;
+    color: white;
+}
+
 .header h1 {
     margin: 0;
     font-size: 2rem;
@@ -202,6 +224,97 @@ h1 {
 
 .cell:hover {
     background: #f8f9fa;
+}
+
+.cell.clickable {
+    cursor: pointer;
+}
+
+.cell.clickable:hover {
+    background: #e3f2fd;
+    border: 2px solid #2196f3;
+}
+
+.cell.editing {
+    padding: 0;
+    position: relative;
+}
+
+.cell-editor {
+    padding: 0.5rem;
+    background: white;
+    border: 2px solid #2196f3;
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.editor-tabs {
+    display: flex;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #ddd;
+}
+
+.editor-tabs .tab {
+    flex: 1;
+    padding: 0.25rem 0.5rem;
+    border: none;
+    background: #f8f9fa;
+    border-radius: 0;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.editor-tabs .tab.active {
+    background: #007bff;
+    color: white;
+}
+
+.editor-tabs .tab:hover:not(.active) {
+    background: #e9ecef;
+}
+
+.cell-editor input {
+    width: 100%;
+    padding: 0.25rem;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.editor-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.btn-save,
+.btn-cancel {
+    padding: 0.25rem 0.5rem;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.btn-save {
+    background: #28a745;
+    color: white;
+}
+
+.btn-save:hover {
+    background: #218838;
+}
+
+.btn-cancel {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-cancel:hover {
+    background: #c82333;
 }
 
 .loading {
