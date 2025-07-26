@@ -300,6 +300,28 @@ async def chat_endpoint(
     return ChatResponse(response=llm_reply, action=action, action_args=action_args)
 
 
+@router.get("/chat/history")
+async def get_chat_history(chat_file: deps.ChatFileDeps):
+    """Get chat history from the JSONL file."""
+    try:
+        if not chat_file.exists():
+            return []
+
+        messages = []
+        with chat_file.open("r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    try:
+                        message = json.loads(line)
+                        messages.append(message)
+                    except json.JSONDecodeError:
+                        continue
+
+        return messages
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load chat history: {e}")
+
+
 @router.websocket("/chat/ws")
 async def websocket_chat_endpoint(
     websocket: WebSocket,

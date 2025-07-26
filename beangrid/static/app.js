@@ -271,14 +271,45 @@ function WorkbookViewer() {
 }
 
 function ChatSidebar({ onAction }) {
-    const [messages, setMessages] = React.useState([
-        { role: 'assistant', content: 'Hi! I am your spreadsheet assistant. Ask me about your data or request updates.' }
-    ]);
+    const [messages, setMessages] = React.useState([]);
     const [input, setInput] = React.useState('');
     const [loading, setLoading] = React.useState(false);
     const [websocket, setWebsocket] = React.useState(null);
     const [isConnected, setIsConnected] = React.useState(false);
     const [thinkingBlocks, setThinkingBlocks] = React.useState({});
+    const [historyLoaded, setHistoryLoaded] = React.useState(false);
+
+    // Load chat history on component mount
+    React.useEffect(() => {
+        loadChatHistory();
+    }, []);
+
+    const loadChatHistory = async () => {
+        try {
+            const response = await fetch('/api/v1/chat/history');
+            if (response.ok) {
+                const history = await response.json();
+                // Filter out system messages and only show user/assistant messages
+                const userMessages = history.filter(msg => 
+                    msg.role === 'user' || msg.role === 'assistant'
+                );
+                setMessages(userMessages);
+            } else {
+                // If no history exists, show welcome message
+                setMessages([
+                    { role: 'assistant', content: 'Hi! I am your spreadsheet assistant. Ask me about your data or request updates.' }
+                ]);
+            }
+        } catch (error) {
+            console.error('Failed to load chat history:', error);
+            // Show welcome message if history loading fails
+            setMessages([
+                { role: 'assistant', content: 'Hi! I am your spreadsheet assistant. Ask me about your data or request updates.' }
+            ]);
+        } finally {
+            setHistoryLoaded(true);
+        }
+    };
 
     // Initialize WebSocket connection
     React.useEffect(() => {
@@ -502,8 +533,17 @@ function ChatSidebar({ onAction }) {
                 </div>
             </div>
             <div className="chat-messages">
-                {messages.map((msg, i) => renderMessage(msg, i))}
-                {loading && <div className="chat-msg assistant thinking">🤔 Thinking...</div>}
+                {!historyLoaded ? (
+                    <div className="chat-loading">
+                        <div className="spinner"></div>
+                        <span>Loading chat history...</span>
+                    </div>
+                ) : (
+                    <>
+                        {messages.map((msg, i) => renderMessage(msg, i))}
+                        {loading && <div className="chat-msg assistant thinking">🤔 Thinking...</div>}
+                    </>
+                )}
             </div>
             <div className="chat-input-bar">
                 <input
@@ -512,9 +552,9 @@ function ChatSidebar({ onAction }) {
                     onChange={e => setInput(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') sendMessage(); }}
                     placeholder="Ask about your spreadsheet..."
-                    disabled={!isConnected}
+                    disabled={!isConnected || !historyLoaded}
                 />
-                <button onClick={sendMessage} disabled={loading || !input.trim() || !isConnected}>
+                <button onClick={sendMessage} disabled={loading || !input.trim() || !isConnected || !historyLoaded}>
                     Send
                 </button>
             </div>

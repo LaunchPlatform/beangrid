@@ -697,3 +697,27 @@ h1 {
     font-weight: 600;
     color: #007bff;
 } 
+
+.chat-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.chat-loading .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #e9ecef;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 0.5rem;
+}
+
+.chat-loading span {
+    margin-top: 0.5rem;
+} 
