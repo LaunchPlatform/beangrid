@@ -10,77 +10,60 @@ from fastapi import HTTPException
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
 
+from .scheme.cell import Cell
+from .scheme.cell import Sheet
+from .scheme.cell import Workbook
+
 
 # Get the templates directory
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
-# Sample workbook content
-SAMPLE_WORKBOOK = """sheets:
-  - name: Sales
-    cells:
-      - id: A1
-        value: Product
-      - id: B1
-        value: Price
-      - id: C1
-        value: Quantity
-      - id: D1
-        value: Total
-      - id: A2
-        value: Widget A
-      - id: B2
-        value: "10.50"
-      - id: C2
-        value: "4"
-      - id: D2
-        formula: "=B2*C2"
-      - id: A3
-        value: Widget B
-      - id: B3
-        value: "15.75"
-      - id: C3
-        value: "5"
-      - id: D3
-        formula: "=B3*C3"
-      - id: A4
-        value: Widget C
-      - id: B4
-        value: "8.25"
-      - id: C4
-        value: "7"
-      - id: D4
-        formula: "=B4*C4"
-      - id: A5
-        value: Total
-      - id: B5
-        value: ""
-      - id: C5
-        value: ""
-      - id: D5
-        formula: "=SUM(D2:D4)"
-  - name: Summary
-    cells:
-      - id: A1
-        value: Summary
-      - id: B1
-        value: Value
-      - id: A2
-        value: Total Sales
-      - id: B2
-        formula: "=Sales!D5"
-      - id: A3
-        value: Average Price
-      - id: B3
-        formula: "=AVERAGE(Sales!B2:B4)"
-      - id: A4
-        value: Max Price
-      - id: B4
-        formula: "=MAX(Sales!B2:B4)"
-      - id: A5
-        value: Min Price
-      - id: B5
-        formula: "=MIN(Sales!B2:B4)"
-"""
+
+def create_sample_workbook() -> Workbook:
+    """Create a sample workbook using Pydantic models."""
+    sales_sheet = Sheet(
+        name="Sales",
+        cells=[
+            Cell(id="A1", value="Product"),
+            Cell(id="B1", value="Price"),
+            Cell(id="C1", value="Quantity"),
+            Cell(id="D1", value="Total"),
+            Cell(id="A2", value="Widget A"),
+            Cell(id="B2", value="10.50"),
+            Cell(id="C2", value="4"),
+            Cell(id="D2", formula="=B2*C2"),
+            Cell(id="A3", value="Widget B"),
+            Cell(id="B3", value="15.75"),
+            Cell(id="C3", value="5"),
+            Cell(id="D3", formula="=B3*C3"),
+            Cell(id="A4", value="Widget C"),
+            Cell(id="B4", value="8.25"),
+            Cell(id="C4", value="7"),
+            Cell(id="D4", formula="=B4*C4"),
+            Cell(id="A5", value="Total"),
+            Cell(id="B5", value=""),
+            Cell(id="C5", value=""),
+            Cell(id="D5", formula="=SUM(D2:D4)"),
+        ],
+    )
+
+    summary_sheet = Sheet(
+        name="Summary",
+        cells=[
+            Cell(id="A1", value="Summary"),
+            Cell(id="B1", value="Value"),
+            Cell(id="A2", value="Total Sales"),
+            Cell(id="B2", formula="=Sales!D5"),
+            Cell(id="A3", value="Average Price"),
+            Cell(id="B3", formula="=AVERAGE(Sales!B2:B4)"),
+            Cell(id="A4", value="Max Price"),
+            Cell(id="B4", formula="=MAX(Sales!B2:B4)"),
+            Cell(id="A5", value="Min Price"),
+            Cell(id="B5", formula="=MIN(Sales!B2:B4)"),
+        ],
+    )
+
+    return Workbook(sheets=[sales_sheet, summary_sheet])
 
 
 def get_templates() -> Jinja2Templates:
@@ -109,9 +92,14 @@ def get_workdir(request: Request) -> Path:
     workdir_path = Path(tempfile.gettempdir()) / f"beangrid_{new_uuid}"
     workdir_path.mkdir(parents=True, exist_ok=True)
 
-    # Initialize sample workbook.yaml
+    # Initialize sample workbook.yaml using Pydantic models
     workbook_file = workdir_path / "workbook.yaml"
-    workbook_file.write_text(SAMPLE_WORKBOOK, encoding="utf-8")
+    sample_workbook = create_sample_workbook()
+
+    # Import here to avoid circular imports
+    from .core.yaml_processor import save_workbook_to_yaml
+
+    save_workbook_to_yaml(sample_workbook, workbook_file)
 
     # Initialize git repo
     try:
