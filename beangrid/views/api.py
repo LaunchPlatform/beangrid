@@ -242,7 +242,6 @@ async def get_cell(file_path: deps.YAMLFilePathDeps, sheet_name: str, cell_id: s
 async def chat_endpoint(
     request: Request,
     yaml_content: deps.YAMLContentDeps,
-    workdir: deps.WorkdirDeps,
     chat_file: deps.ChatFileDeps,
     chat: ChatRequest = Body(...),
 ):
