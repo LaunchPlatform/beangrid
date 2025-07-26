@@ -1,15 +1,10 @@
 from abc import ABC
 from abc import abstractmethod
-from collections import defaultdict
 from typing import Any
 from typing import Dict
 from typing import List
-from typing import Optional
 from typing import Set
 from typing import Tuple
-
-from .ast import Cell
-from .ast import CellRange
 from .evaluator import DependencyGraph
 from .evaluator import FormulaEvaluator
 from .parser import parse_excel_formula
