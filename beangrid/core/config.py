@@ -22,8 +22,9 @@ class Settings(BaseSettings):
     SESSION_MAX_AGE: int = 14 * 24 * 60 * 60  # 14 days, in seconds
 
     # LLM Configuration
-    LLM_MODEL: str = "ollama/deepseek-r1:32b"
-    LLM_API_BASE: str = "http://192.168.50.71:11434"
+    LLM_MODEL: str = "xai/grok-3"
+    LLM_API_BASE: str = "https://api.x.ai/v1"
+    LLM_API_KEY: str = ""  # Set your X.AI API key here or via environment variable
 
 
 # Do not import and access this directly, use settings instead

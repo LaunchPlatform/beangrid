@@ -279,6 +279,7 @@ async def chat_endpoint(
             messages=messages,
             stream=False,
             api_base=settings.LLM_API_BASE,
+            api_key=settings.LLM_API_KEY,
         )
         llm_reply = response["choices"][0]["message"]["content"]
     except Exception as e:
@@ -400,6 +401,7 @@ async def websocket_chat_endpoint(
                     messages=messages,
                     stream=True,
                     api_base=settings.LLM_API_BASE,
+                    api_key=settings.LLM_API_KEY,
                 )
 
                 full_response = ""

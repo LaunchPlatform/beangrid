@@ -15,21 +15,27 @@ A plaintext spreadsheet application with real-time collaboration and AI assistan
 
 ### LLM Settings
 
-The application uses an LLM for AI assistance. You can configure the LLM settings using environment variables:
+The application uses Grok for AI assistance. You can configure the LLM settings using environment variables:
 
 ```bash
-# Set the LLM model
-export LLM_MODEL="ollama/deepseek-r1:32b"
+# Set the LLM model (Grok)
+export LLM_MODEL="xai/grok-3"
 
-# Set the LLM API base URL
-export LLM_API_BASE="http://192.168.1.123:11434"
+# Set the LLM API base URL (X.AI API)
+export LLM_API_BASE="https://api.x.ai/v1"
+
+# Set your X.AI API key
+export LLM_API_KEY="your-xai-api-key-here"
 ```
 
 Or you can set these in a `.env` file:
 
 ```env
-LLM_MODEL=ollama/deepseek-r1:32b
-LLM_API_BASE=http://192.168.1.123:11434
+LLM_MODEL=xai/grok-beta
+LLM_API_BASE=https://api.x.ai/v1
+LLM_API_KEY=your-xai-api-key-here
 ```
+
+**Note**: You'll need to obtain an API key from [X.AI](https://x.ai) to use Grok.
 
 ## Installation
