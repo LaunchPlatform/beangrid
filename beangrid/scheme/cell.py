@@ -3,8 +3,8 @@ from pydantic import BaseModel
 
 class Cell(BaseModel):
     id: str
-    value: str | None
-    formula: str | None
+    value: str | None = None
+    formula: str | None = None
 
 
 class Sheet(BaseModel):

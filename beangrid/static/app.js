@@ -330,17 +330,75 @@ function ChatSidebar({ onAction }) {
     );
 }
 
+function YamlEditor({ onClose, onSaved }) {
+    const [yaml, setYaml] = React.useState('');
+    const [loading, setLoading] = React.useState(true);
+    const [error, setError] = React.useState(null);
+    const [saving, setSaving] = React.useState(false);
+    React.useEffect(() => {
+        fetch('/api/v1/workbook/yaml')
+            .then(r => r.text())
+            .then(setYaml)
+            .catch(e => setError(e.message))
+            .finally(() => setLoading(false));
+    }, []);
+    const handleSave = async () => {
+        setSaving(true);
+        setError(null);
+        try {
+            const resp = await fetch('/api/v1/workbook/yaml', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ yaml_content: yaml })
+            });
+            if (!resp.ok) {
+                const data = await resp.json();
+                setError(data.detail || 'Failed to save YAML');
+            } else {
+                onSaved && onSaved();
+            }
+        } catch (e) {
+            setError(e.message);
+        } finally {
+            setSaving(false);
+        }
+    };
+    return (
+        <div className="yaml-editor">
+            <div className="yaml-editor-header">
+                <span>Raw YAML Editor</span>
+                <button onClick={onClose} className="btn-cancel">Close</button>
+            </div>
+            {loading ? <div>Loading...</div> : (
+                <>
+                    <textarea
+                        className="yaml-textarea"
+                        value={yaml}
+                        onChange={e => setYaml(e.target.value)}
+                        rows={24}
+                        spellCheck={false}
+                    />
+                    {error && <div className="yaml-error">{error}</div>}
+                    <div className="yaml-editor-actions">
+                        <button onClick={handleSave} className="btn-save" disabled={saving}>Save</button>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
+
 function App() {
+    const [tab, setTab] = React.useState('spreadsheet');
     const workbookRef = React.useRef();
+    const [showYaml, setShowYaml] = React.useState(false);
     const handleLLMAction = async (action, args) => {
         if (action === 'update_cell') {
-            // Call the same update logic as the formula bar
             await fetch('/api/v1/workbook/cell', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(args)
             });
-            // Optionally, refresh the workbook UI
             if (workbookRef.current && workbookRef.current.fetchWorkbook) {
                 workbookRef.current.fetchWorkbook();
             } else {
@@ -348,10 +406,19 @@ function App() {
             }
         }
     };
+    const handleYamlSaved = () => {
+        setShowYaml(false);
+        window.location.reload();
+    };
     return (
         <div className="main-layout">
             <div className="main-content">
-                <WorkbookViewer ref={workbookRef} />
+                <div className="tab-bar">
+                    <button className={tab === 'spreadsheet' ? 'active' : ''} onClick={() => setTab('spreadsheet')}>Spreadsheet</button>
+                    <button className={tab === 'yaml' ? 'active' : ''} onClick={() => setTab('yaml')}>YAML</button>
+                </div>
+                {tab === 'spreadsheet' && <WorkbookViewer ref={workbookRef} />}
+                {tab === 'yaml' && <YamlEditor onClose={() => setTab('spreadsheet')} onSaved={handleYamlSaved} />}
             </div>
             <ChatSidebar onAction={handleLLMAction} />
         </div>

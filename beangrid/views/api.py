@@ -4,10 +4,12 @@ from typing import Any
 from typing import Dict
 from typing import List
 
+import yaml
 from fastapi import APIRouter
 from fastapi import Body
 from fastapi import HTTPException
 from fastapi import Request
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
 from ..core.processor import FormulaProcessor
@@ -279,3 +281,27 @@ async def chat_endpoint(request: Request, chat: ChatRequest = Body(...)):
             action_args={"sheet_name": "Sheet1", "cell_id": "A1", "value": "42"},
         )
     return ChatResponse(response=f"You said: {chat.message}")
+
+
+@router.get("/workbook/yaml", response_class=PlainTextResponse)
+async def get_workbook_yaml():
+    file_path = _get_workbook_file_path()
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Workbook file not found")
+    with open(file_path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@router.put("/workbook/yaml")
+async def update_workbook_yaml(yaml_content: str = Body(..., embed=True)):
+    file_path = _get_workbook_file_path()
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Workbook file not found")
+    try:
+        data = yaml.safe_load(yaml_content)
+        Workbook.model_validate(data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid YAML: {e}")
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(yaml_content)
+    return {"message": "YAML updated successfully"}
