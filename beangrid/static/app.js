@@ -270,5 +270,93 @@ function WorkbookViewer() {
     );
 }
 
-// Render the React app
-ReactDOM.render(<WorkbookViewer />, document.getElementById('app')); 
+function ChatSidebar({ onAction }) {
+    const [messages, setMessages] = React.useState([
+        { role: 'assistant', content: 'Hi! I am your spreadsheet assistant. Ask me about your data or request updates.' }
+    ]);
+    const [input, setInput] = React.useState('');
+    const [loading, setLoading] = React.useState(false);
+
+    const sendMessage = async () => {
+        if (!input.trim()) return;
+        const newMessages = [...messages, { role: 'user', content: input }];
+        setMessages(newMessages);
+        setInput('');
+        setLoading(true);
+        try {
+            const response = await fetch('/api/v1/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: input,
+                    history: newMessages.map(m => ({ role: m.role, content: m.content }))
+                })
+            });
+            const data = await response.json();
+            setMessages([...newMessages, { role: 'assistant', content: data.response }]);
+            setLoading(false);
+            if (data.action === 'update_cell' && data.action_args) {
+                // Ask user to confirm the action
+                if (window.confirm(data.response + '\nApply this change?')) {
+                    onAction(data.action, data.action_args);
+                }
+            }
+        } catch (err) {
+            setMessages([...newMessages, { role: 'assistant', content: 'Error: ' + err.message }]);
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="chat-sidebar">
+            <div className="chat-header">🤖 Spreadsheet Chat</div>
+            <div className="chat-messages">
+                {messages.map((msg, i) => (
+                    <div key={i} className={`chat-msg ${msg.role}`}>{msg.content}</div>
+                ))}
+                {loading && <div className="chat-msg assistant">...</div>}
+            </div>
+            <div className="chat-input-bar">
+                <input
+                    type="text"
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') sendMessage(); }}
+                    placeholder="Ask about your spreadsheet..."
+                />
+                <button onClick={sendMessage} disabled={loading || !input.trim()}>Send</button>
+            </div>
+        </div>
+    );
+}
+
+function App() {
+    const workbookRef = React.useRef();
+    const handleLLMAction = async (action, args) => {
+        if (action === 'update_cell') {
+            // Call the same update logic as the formula bar
+            await fetch('/api/v1/workbook/cell', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(args)
+            });
+            // Optionally, refresh the workbook UI
+            if (workbookRef.current && workbookRef.current.fetchWorkbook) {
+                workbookRef.current.fetchWorkbook();
+            } else {
+                window.location.reload();
+            }
+        }
+    };
+    return (
+        <div className="main-layout">
+            <div className="main-content">
+                <WorkbookViewer ref={workbookRef} />
+            </div>
+            <ChatSidebar onAction={handleLLMAction} />
+        </div>
+    );
+}
+
+// Render the App
+ReactDOM.render(<App />, document.getElementById('app')); 

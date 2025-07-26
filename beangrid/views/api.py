@@ -7,6 +7,7 @@ from typing import List
 from fastapi import APIRouter
 from fastapi import Body
 from fastapi import HTTPException
+from fastapi import Request
 from pydantic import BaseModel
 
 from ..core.processor import FormulaProcessor
@@ -33,6 +34,51 @@ class CellUpdateRequest(BaseModel):
     cell_id: str
     value: str | None = None
     formula: str | None = None
+
+
+class ChatRequest(BaseModel):
+    message: str
+    history: list[dict] = []  # [{role: "user"|"assistant", content: str}]
+    action: str | None = None  # e.g., "update_cell"
+    action_args: dict | None = None
+
+
+class ChatResponse(BaseModel):
+    response: str
+    action: str | None = None
+    action_args: dict | None = None
+
+
+# JSON schema for the spreadsheet YAML format
+SPREADSHEET_SCHEMA = {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "sheets": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "cells": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {"type": "string"},
+                                "value": {"type": ["string", "null"]},
+                                "formula": {"type": ["string", "null"]},
+                            },
+                            "required": ["id"],
+                        },
+                    },
+                },
+                "required": ["name", "cells"],
+            },
+        }
+    },
+    "required": ["sheets"],
+}
 
 
 @router.get("/workbook", response_model=WorkbookResponse)
@@ -236,3 +282,30 @@ async def get_cell(sheet_name: str, cell_id: str):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/chat", response_model=ChatResponse)
+async def chat_endpoint(request: Request, chat: ChatRequest = Body(...)):
+    """Chat endpoint for LLM interaction with spreadsheet context."""
+    # Load YAML file as context
+    file_path = _get_workbook_file_path()
+    if not file_path.exists():
+        return ChatResponse(response="No spreadsheet found.")
+    with open(file_path, "r", encoding="utf-8") as f:
+        yaml_content = f.read()
+    # Provide context to the LLM (mocked for now)
+    context = {
+        "yaml": yaml_content,
+        "schema": SPREADSHEET_SCHEMA,
+        "history": chat.history,
+        "user_message": chat.message,
+    }
+    # Mock LLM: echo the message and suggest an update if asked
+    if "update" in chat.message.lower():
+        # Example: suggest updating A1 in Sheet1
+        return ChatResponse(
+            response="I suggest updating cell A1 in Sheet1 to value '42'. Do you want to apply this?",
+            action="update_cell",
+            action_args={"sheet_name": "Sheet1", "cell_id": "A1", "value": "42"},
+        )
+    return ChatResponse(response=f"You said: {chat.message}")

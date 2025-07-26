@@ -378,4 +378,100 @@ h1 {
     border: 1px solid #bee5eb;
     border-radius: 4px;
     color: #0c5460;
+}
+
+/* Main layout for spreadsheet + chat */
+.main-layout {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+.main-content {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: auto;
+    background: none;
+}
+
+.chat-sidebar {
+    width: 340px;
+    background: #f4f6fa;
+    border-left: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    box-shadow: -2px 0 8px rgba(0,0,0,0.03);
+}
+
+.chat-header {
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: 1rem;
+    border-bottom: 1px solid #e0e0e0;
+    background: #fff;
+}
+
+.chat-messages {
+    flex: 1 1 0;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.chat-msg {
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    max-width: 90%;
+    word-break: break-word;
+    font-size: 0.98rem;
+}
+
+.chat-msg.user {
+    align-self: flex-end;
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.chat-msg.assistant {
+    align-self: flex-start;
+    background: #fff;
+    color: #333;
+    border: 1px solid #e0e0e0;
+}
+
+.chat-input-bar {
+    display: flex;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-top: 1px solid #e0e0e0;
+    background: #fff;
+}
+
+.chat-input-bar input {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid #bdbdbd;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.chat-input-bar button {
+    padding: 0.5rem 1.2rem;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.2s;
+}
+
+.chat-input-bar button:disabled {
+    background: #bdbdbd;
+    cursor: not-allowed;
 } 
