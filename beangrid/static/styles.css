@@ -413,6 +413,7 @@ h1 {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .connection-status {
@@ -434,7 +435,8 @@ h1 {
     flex: 1;
     overflow-y: auto;
     padding: 1rem;
-    max-height: 400px;
+    display: flex;
+    flex-direction: column;
 }
 
 .chat-msg {
@@ -631,11 +633,12 @@ h1 {
 }
 
 .chat-input-bar {
+    background: white;
+    border-top: 1px solid #e0e0e0;
+    padding: 1rem;
     display: flex;
     gap: 0.5rem;
-    padding: 1rem;
-    border-top: 1px solid #e0e0e0;
-    background: #fff;
+    flex-shrink: 0;
 }
 
 .chat-input-bar input {

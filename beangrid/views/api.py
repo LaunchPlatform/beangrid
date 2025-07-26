@@ -37,6 +37,7 @@ class WorkbookResponse(BaseModel):
     sheets: List[Dict[str, Any]]
     processed: bool
     error: str = None
+    session_uuid: str | None = None
 
 
 class CellUpdateRequest(BaseModel):
@@ -69,9 +70,12 @@ class ChatResponse(BaseModel):
 
 
 @router.get("/workbook", response_model=WorkbookResponse)
-async def get_workbook(file_path: deps.YAMLFilePathDeps):
+async def get_workbook(file_path: deps.YAMLFilePathDeps, request: Request):
     """Get workbook data from the file specified by workdir."""
     try:
+        # Get the session UUID from the request
+        session_uuid = request.session.get("workdir_uuid")
+
         # Load the workbook
         workbook = load_workbook_from_yaml(file_path)
 
@@ -91,7 +95,9 @@ async def get_workbook(file_path: deps.YAMLFilePathDeps):
             }
             sheets_data.append(sheet_data)
 
-        return WorkbookResponse(sheets=sheets_data, processed=True)
+        return WorkbookResponse(
+            sheets=sheets_data, processed=True, session_uuid=session_uuid
+        )
 
     except Exception as e:
         return WorkbookResponse(sheets=[], processed=False, error=str(e))

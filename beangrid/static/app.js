@@ -1,13 +1,14 @@
 // React app for BeanGrid workbook viewer
 const { useState, useEffect } = React;
 
-function WorkbookViewer() {
+function WorkbookViewer({ onWorkbookLoaded }) {
     const [workbook, setWorkbook] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeSheet, setActiveSheet] = useState(0);
     const [selectedCell, setSelectedCell] = useState(null);
     const [formulaBar, setFormulaBar] = useState({ value: '', formula: '', showFormula: false });
+    const [sessionUuid, setSessionUuid] = useState(null);
 
     useEffect(() => {
         fetchWorkbook();
@@ -23,6 +24,15 @@ function WorkbookViewer() {
                 setError(data.error);
             } else {
                 setWorkbook(data);
+                // Extract session UUID from workbook response
+                if (data.session_uuid) {
+                    setSessionUuid(data.session_uuid);
+                    console.log('Session UUID from workbook:', data.session_uuid);
+                    // Notify parent component about the loaded session UUID
+                    if (onWorkbookLoaded) {
+                        onWorkbookLoaded(data.session_uuid);
+                    }
+                }
             }
         } catch (err) {
             setError('Failed to load workbook: ' + err.message);
@@ -270,7 +280,7 @@ function WorkbookViewer() {
     );
 }
 
-function ChatSidebar({ onAction }) {
+function ChatSidebar({ onAction, sessionUuid }) {
     const [messages, setMessages] = React.useState([]);
     const [input, setInput] = React.useState('');
     const [loading, setLoading] = React.useState(false);
@@ -287,9 +297,9 @@ function ChatSidebar({ onAction }) {
 
     const loadChatHistory = async () => {
         try {
-            const response = await fetch('/api/v1/chat/history');
-            if (response.ok) {
-                const history = await response.json();
+            const historyResponse = await fetch('/api/v1/chat/history');
+            if (historyResponse.ok) {
+                const history = await historyResponse.json();
                 // Filter out system messages and only show user/assistant messages
                 const userMessages = history.filter(msg => 
                     msg.role === 'user' || msg.role === 'assistant'
@@ -303,7 +313,7 @@ function ChatSidebar({ onAction }) {
             }
         } catch (error) {
             console.error('Failed to load chat history:', error);
-            // Show welcome message if history loading fails
+            // Show welcome message if loading fails
             setMessages([
                 { role: 'assistant', content: 'Hi! I am your spreadsheet assistant. Ask me about your data or request updates.' }
             ]);
@@ -339,14 +349,11 @@ function ChatSidebar({ onAction }) {
 
     // Initialize WebSocket connection
     React.useEffect(() => {
+        if (!sessionUuid) return; // Don't connect until session UUID is loaded
+        
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        // Get session UUID from cookies or create a new one
-        let sessionUuid = getCookie('session_uuid');
-        if (!sessionUuid) {
-            sessionUuid = generateUUID();
-            setCookie('session_uuid', sessionUuid, 7); // 7 days
-        }
         const wsUrl = `${protocol}//${window.location.host}/api/v1/chat/ws?session_uuid=${sessionUuid}`;
+        console.log('Connecting to WebSocket with session UUID:', sessionUuid);
         const ws = new WebSocket(wsUrl);
         
         ws.onopen = () => {
@@ -466,33 +473,7 @@ function ChatSidebar({ onAction }) {
         return () => {
             ws.close();
         };
-    }, []);
-
-    // Helper functions for cookie management
-    function setCookie(name, value, days) {
-        const expires = new Date();
-        expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
-        document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
-    }
-
-    function getCookie(name) {
-        const nameEQ = name + "=";
-        const ca = document.cookie.split(';');
-        for (let i = 0; i < ca.length; i++) {
-            let c = ca[i];
-            while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-            if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-        }
-        return null;
-    }
-
-    function generateUUID() {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            const r = Math.random() * 16 | 0;
-            const v = c === 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
-    }
+    }, [sessionUuid]); // Reconnect when session UUID changes
 
     const sendMessage = async () => {
         if (!input.trim() || !websocket || !isConnected) return;
@@ -739,6 +720,8 @@ function DiffView() {
 function App() {
     const [tab, setTab] = React.useState('spreadsheet');
     const workbookRef = React.useRef();
+    const [sessionUuid, setSessionUuid] = React.useState(null);
+    
     const handleLLMAction = async (action, args) => {
         if (action === 'update_cell') {
             const response = await fetch('/api/v1/workbook/cell', {
@@ -773,9 +756,15 @@ function App() {
             }
         }
     };
+    
+    const handleWorkbookLoaded = (sessionUuid) => {
+        setSessionUuid(sessionUuid);
+    };
+    
     const handleYamlSaved = () => {
         window.location.reload();
     };
+    
     return (
         <div className="main-layout">
             <div className="main-content">
@@ -784,11 +773,11 @@ function App() {
                     <button className={tab === 'yaml' ? 'active' : ''} onClick={() => setTab('yaml')}>YAML</button>
                     <button className={tab === 'diff' ? 'active' : ''} onClick={() => setTab('diff')}>Diff</button>
                 </div>
-                {tab === 'spreadsheet' && <WorkbookViewer ref={workbookRef} />}
+                {tab === 'spreadsheet' && <WorkbookViewer ref={workbookRef} onWorkbookLoaded={handleWorkbookLoaded} />}
                 {tab === 'yaml' && <YamlEditor onClose={() => setTab('spreadsheet')} onSaved={handleYamlSaved} />}
                 {tab === 'diff' && <DiffView />}
             </div>
-            <ChatSidebar onAction={handleLLMAction} />
+            <ChatSidebar onAction={handleLLMAction} sessionUuid={sessionUuid} />
         </div>
     );
 }
