@@ -25,7 +25,8 @@ def test_simple_formula_evaluation():
     result = processor.process_workbook(workbook)
 
     # Check that A3 was calculated correctly
-    a3_cell = next(cell for cell in result.sheets[0].cells if cell.id == "A3")
+    cells = result.sheets[0].get_cell_dict()
+    a3_cell = cells["A3"]
     assert a3_cell.value == "30.0"
     assert a3_cell.formula == "A1 + A2"
 
@@ -50,7 +51,8 @@ def test_function_evaluation():
     result = processor.process_workbook(workbook)
 
     # Check that A4 was calculated correctly
-    a4_cell = next(cell for cell in result.sheets[0].cells if cell.id == "A4")
+    cells = result.sheets[0].get_cell_dict()
+    a4_cell = cells["A4"]
     assert a4_cell.value == "60.0"
 
 
@@ -73,8 +75,9 @@ def test_dependency_order():
     result = processor.process_workbook(workbook)
 
     # Check that all cells were calculated correctly
-    a2_cell = next(cell for cell in result.sheets[0].cells if cell.id == "A2")
-    a3_cell = next(cell for cell in result.sheets[0].cells if cell.id == "A3")
+    cells = result.sheets[0].get_cell_dict()
+    a2_cell = cells["A2"]
+    a3_cell = cells["A3"]
 
     assert a2_cell.value == "20.0"
     assert a3_cell.value == "25.0"
@@ -123,7 +126,8 @@ def test_sheet_references():
     result = processor.process_workbook(workbook)
 
     # Check that Sheet2!A1 was calculated correctly
-    sheet2_a1 = next(cell for cell in result.sheets[1].cells if cell.id == "A1")
+    cells = result.sheets[1].get_cell_dict()
+    sheet2_a1 = cells["A1"]
     assert sheet2_a1.value == "200.0"
 
 
@@ -147,7 +151,8 @@ def test_complex_formula():
     result = processor.process_workbook(workbook)
 
     # Check that A4 was calculated correctly: (10 + 20) * 30 / 2 = 450
-    a4_cell = next(cell for cell in result.sheets[0].cells if cell.id == "A4")
+    cells = result.sheets[0].get_cell_dict()
+    a4_cell = cells["A4"]
     assert a4_cell.value == "450.0"
 
 
@@ -170,7 +175,8 @@ def test_string_concatenation():
     result = processor.process_workbook(workbook)
 
     # Check that A3 was calculated correctly
-    a3_cell = next(cell for cell in result.sheets[0].cells if cell.id == "A3")
+    cells = result.sheets[0].get_cell_dict()
+    a3_cell = cells["A3"]
     assert a3_cell.value == "Hello World"
 
 
@@ -194,8 +200,9 @@ def test_comparison_operations():
     result = processor.process_workbook(workbook)
 
     # Check that comparisons work correctly
-    a3_cell = next(cell for cell in result.sheets[0].cells if cell.id == "A3")
-    a4_cell = next(cell for cell in result.sheets[0].cells if cell.id == "A4")
+    cells = result.sheets[0].get_cell_dict()
+    a3_cell = cells["A3"]
+    a4_cell = cells["A4"]
 
     assert a3_cell.value == "True"
     assert a4_cell.value == "False"
@@ -220,8 +227,9 @@ def test_if_function():
     result = processor.process_workbook(workbook)
 
     # Check that IF function works correctly
-    a2_cell = next(cell for cell in result.sheets[0].cells if cell.id == "A2")
-    a3_cell = next(cell for cell in result.sheets[0].cells if cell.id == "A3")
+    cells = result.sheets[0].get_cell_dict()
+    a2_cell = cells["A2"]
+    a3_cell = cells["A3"]
 
     assert a2_cell.value == "Yes"
     assert a3_cell.value == "No"
@@ -248,8 +256,9 @@ def test_error_handling():
     result = processor.process_workbook(workbook)
 
     # Check that errors are handled gracefully
-    a2_cell = next(cell for cell in result.sheets[0].cells if cell.id == "A2")
-    a3_cell = next(cell for cell in result.sheets[0].cells if cell.id == "A3")
+    cells = result.sheets[0].get_cell_dict()
+    a2_cell = cells["A2"]
+    a3_cell = cells["A3"]
 
     assert "#DIV/0!" in a2_cell.value
     assert "#NAME?" in a3_cell.value
