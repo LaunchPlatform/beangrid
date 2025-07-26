@@ -1,4 +1,4 @@
-import json as _json
+import json
 import os
 import re
 import subprocess
@@ -254,7 +254,7 @@ async def chat_endpoint(
             "You are a helpful spreadsheet assistant. "
             "The user is working with a spreadsheet in YAML format. "
             "Here is the JSON schema for the spreadsheet:\n"
-            f"{_json.dumps(SPREADSHEET_SCHEMA, indent=2)}\n\n"
+            f"{json.dumps(SPREADSHEET_SCHEMA, indent=2)}\n\n"
             "Answer the user's questions or suggest spreadsheet updates as needed. "
             'If you want to suggest an action, respond with a JSON object like: {"action": "update_cell", "action_args": { ... }}. '
             "Otherwise, just answer in plain text."
@@ -274,11 +274,8 @@ async def chat_endpoint(
                 f.write(json.dumps(msg, ensure_ascii=False) + "\n")
     else:
         # 2. If chat file exists, read messages into history variable
-        history = []
         with chat_file.open("r", encoding="utf-8") as f:
-            for line in f:
-                if line.strip():
-                    history.append(json.loads(line))
+            history = [json.loads(line) for line in f if line.strip()]
 
     # 3. Append user chat message to messages and write to chat file
     user_message = {"role": "user", "content": chat.message}
@@ -311,7 +308,7 @@ async def chat_endpoint(
     match = re.search(r'\{\s*"action"\s*:\s*"[^"]+".*\}', llm_reply, re.DOTALL)
     if match:
         try:
-            action_json = _json.loads(match.group(0))
+            action_json = json.loads(match.group(0))
             action = action_json.get("action")
             action_args = action_json.get("action_args")
         except Exception:
