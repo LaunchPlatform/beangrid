@@ -20,6 +20,7 @@ from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
 from .. import deps
+from ..core.config import settings
 from ..core.processor import FormulaProcessor
 from ..core.yaml_processor import load_workbook_from_yaml
 from ..core.yaml_processor import save_workbook_to_yaml
@@ -274,10 +275,10 @@ async def chat_endpoint(
     # 4. Submit messages to LLM using litellm
     try:
         response = await litellm.acompletion(
-            model="ollama/deepseek-r1:32b",
+            model=settings.LLM_MODEL,
             messages=messages,
             stream=False,
-            api_base="http://192.168.50.71:11434",
+            api_base=settings.LLM_API_BASE,
         )
         llm_reply = response["choices"][0]["message"]["content"]
     except Exception as e:
@@ -395,10 +396,10 @@ async def websocket_chat_endpoint(
             # Stream the LLM response
             try:
                 response = await litellm.acompletion(
-                    model="ollama/deepseek-r1:32b",
+                    model=settings.LLM_MODEL,
                     messages=messages,
                     stream=True,
-                    api_base="http://192.168.50.71:11434",
+                    api_base=settings.LLM_API_BASE,
                 )
 
                 full_response = ""

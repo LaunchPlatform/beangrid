@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     SESSION_SECRET_KEY: str = secrets.token_urlsafe(32)
     SESSION_MAX_AGE: int = 14 * 24 * 60 * 60  # 14 days, in seconds
 
+    # LLM Configuration
+    LLM_MODEL: str = "ollama/deepseek-r1:32b"
+    LLM_API_BASE: str = "http://192.168.50.71:11434"
+
 
 # Do not import and access this directly, use settings instead
 _settings = Settings()
