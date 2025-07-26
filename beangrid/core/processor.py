@@ -249,6 +249,16 @@ class FormulaProcessor(Processor):
                 if cell.value is None:
                     return None
 
+                # Handle percentage values
+                if isinstance(cell.value, str) and cell.value.endswith("%"):
+                    try:
+                        # Remove % and convert to decimal
+                        numeric_value = float(cell.value[:-1]) / 100.0
+                        return numeric_value
+                    except ValueError:
+                        # If conversion fails, return as string
+                        return cell.value
+
                 # Try to convert to number if possible
                 try:
                     if "." in cell.value:

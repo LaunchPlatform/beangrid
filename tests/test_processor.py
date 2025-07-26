@@ -114,7 +114,9 @@ def test_complex_circular_dependency_detection():
                     Cell(id="A2", value=None, formula="A1 + A3"),  # Depends on A1, A3
                     Cell(id="A3", value=None, formula="A2 + A4"),  # Depends on A2, A4
                     Cell(id="A4", value=None, formula="A3 + A5"),  # Depends on A3, A5
-                    Cell(id="A5", value=None, formula="A4 + A2"),  # Creates cycle: A2 -> A3 -> A4 -> A5 -> A2
+                    Cell(
+                        id="A5", value=None, formula="A4 + A2"
+                    ),  # Creates cycle: A2 -> A3 -> A4 -> A5 -> A2
                 ],
             )
         ]
@@ -329,3 +331,53 @@ def test_error_handling():
 
     assert "#DIV/0!" in a2_cell.value
     assert "#NAME?" in a3_cell.value
+
+
+def test_percentage_handling():
+    """Test percentage value handling in formulas."""
+    workbook = Workbook(
+        sheets=[
+            Sheet(
+                name="Sheet1",
+                cells=[
+                    Cell(id="A1", value="123", formula=None),
+                    Cell(id="C4", value="10%", formula=None),
+                    Cell(id="B1", value=None, formula="A1 * C4"),
+                ],
+            )
+        ]
+    )
+
+    processor = FormulaProcessor()
+    result = processor.process_workbook(workbook)
+
+    # Check that B1 was calculated correctly: 123 * 0.1 = 12.3
+    cells = result.sheets[0].get_cell_dict()
+    b1_cell = cells["B1"]
+    assert b1_cell.value == "12.3"
+    assert b1_cell.formula == "A1 * C4"
+
+
+def test_percentage_with_decimal():
+    """Test percentage values with decimal points."""
+    workbook = Workbook(
+        sheets=[
+            Sheet(
+                name="Sheet1",
+                cells=[
+                    Cell(id="A1", value="1000", formula=None),
+                    Cell(id="B1", value="15.5%", formula=None),
+                    Cell(id="C1", value=None, formula="A1 * B1"),
+                ],
+            )
+        ]
+    )
+
+    processor = FormulaProcessor()
+    result = processor.process_workbook(workbook)
+
+    # Check that C1 was calculated correctly: 1000 * 0.155 = 155.0
+    cells = result.sheets[0].get_cell_dict()
+    c1_cell = cells["C1"]
+    assert c1_cell.value == "155.0"
+    assert c1_cell.formula == "A1 * B1"
