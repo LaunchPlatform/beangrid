@@ -127,6 +127,50 @@ function WorkbookViewer() {
         return (
             <div key={sheet.name} className={`sheet ${index === activeSheet ? 'active' : 'hidden'}`}>
                 <h2>{sheet.name}</h2>
+                
+                {/* Formula Bar */}
+                <div className="formula-bar">
+                    <div className="formula-bar-cell-info">
+                        {selectedCell && selectedCell.sheetName === sheet.name ? (
+                            <span className="cell-reference">{selectedCell.id}</span>
+                        ) : (
+                            <span className="cell-reference">No cell selected</span>
+                        )}
+                    </div>
+                    <div className="formula-bar-input-container">
+                        <div className="formula-bar-tabs">
+                            <button 
+                                className={`tab ${!formulaBar.showFormula ? 'active' : ''}`}
+                                onClick={() => setFormulaBar({...formulaBar, showFormula: false})}
+                            >
+                                Value
+                            </button>
+                            <button 
+                                className={`tab ${formulaBar.showFormula ? 'active' : ''}`}
+                                onClick={() => setFormulaBar({...formulaBar, showFormula: true})}
+                            >
+                                Formula
+                            </button>
+                        </div>
+                        <input
+                            type="text"
+                            className="formula-bar-input"
+                            value={formulaBar.showFormula ? formulaBar.formula : formulaBar.value}
+                            onChange={(e) => handleFormulaBarChange(
+                                formulaBar.showFormula ? 'formula' : 'value', 
+                                e.target.value
+                            )}
+                            onKeyDown={handleFormulaBarKeyDown}
+                            placeholder={formulaBar.showFormula ? "Enter formula..." : "Enter value..."}
+                        />
+                        <div className="formula-bar-actions">
+                            <button onClick={handleCellUpdate} className="btn-save" disabled={!selectedCell}>
+                                ✓
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
                 <div className="table-container">
                     <table className="workbook-table">
                         <thead>
