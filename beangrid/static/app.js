@@ -785,13 +785,10 @@ function App() {
                 window.location.reload();
             }
         } else if (action === 'update_workbook') {
-            const response = await fetch('/api/v1/workbook/update-from-chat', {
-                method: 'POST',
+            const response = await fetch('/api/v1/workbook/yaml', {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    yaml_content: args.yaml_content,
-                    commit_message: args.commit_message
-                })
+                body: JSON.stringify({ yaml_content: args.yaml_content })
             });
             if (!response.ok) {
                 throw new Error('Failed to update workbook');
