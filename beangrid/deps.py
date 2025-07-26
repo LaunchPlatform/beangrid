@@ -14,35 +14,8 @@ from fastapi.templating import Jinja2Templates
 # Get the templates directory
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
-
-def get_templates() -> Jinja2Templates:
-    """Dependency to get Jinja2 templates."""
-    return Jinja2Templates(directory=str(TEMPLATES_DIR))
-
-
-def get_workdir(request: Request) -> Path:
-    # Check for existing session UUID using Starlette sessions
-    session_uuid = request.session.get("workdir_uuid")
-
-    if session_uuid:
-        # Validate UUID format
-        try:
-            uuid.UUID(session_uuid)
-            # Try to use existing workdir
-            workdir_path = Path(tempfile.gettempdir()) / f"beangrid_{session_uuid}"
-            if workdir_path.exists() and workdir_path.is_dir():
-                return workdir_path
-        except ValueError:
-            # Invalid UUID format, treat as no session
-            pass
-
-    # Create new workdir with UUID
-    new_uuid = str(uuid.uuid4())
-    workdir_path = Path(tempfile.gettempdir()) / f"beangrid_{new_uuid}"
-    workdir_path.mkdir(parents=True, exist_ok=True)
-
-    # Initialize sample workbook.yaml
-    sample_workbook = """sheets:
+# Sample workbook content
+SAMPLE_WORKBOOK = """sheets:
   - name: Sales
     cells:
       - id: A1
@@ -109,8 +82,36 @@ def get_workdir(request: Request) -> Path:
         formula: "=MIN(Sales!B2:B4)"
 """
 
+
+def get_templates() -> Jinja2Templates:
+    """Dependency to get Jinja2 templates."""
+    return Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+
+def get_workdir(request: Request) -> Path:
+    # Check for existing session UUID using Starlette sessions
+    session_uuid = request.session.get("workdir_uuid")
+
+    if session_uuid:
+        # Validate UUID format
+        try:
+            uuid.UUID(session_uuid)
+            # Try to use existing workdir
+            workdir_path = Path(tempfile.gettempdir()) / f"beangrid_{session_uuid}"
+            if workdir_path.exists() and workdir_path.is_dir():
+                return workdir_path
+        except ValueError:
+            # Invalid UUID format, treat as no session
+            pass
+
+    # Create new workdir with UUID
+    new_uuid = str(uuid.uuid4())
+    workdir_path = Path(tempfile.gettempdir()) / f"beangrid_{new_uuid}"
+    workdir_path.mkdir(parents=True, exist_ok=True)
+
+    # Initialize sample workbook.yaml
     workbook_file = workdir_path / "workbook.yaml"
-    workbook_file.write_text(sample_workbook, encoding="utf-8")
+    workbook_file.write_text(SAMPLE_WORKBOOK, encoding="utf-8")
 
     # Initialize git repo
     try:
