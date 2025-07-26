@@ -289,6 +289,14 @@ function ChatSidebar({ onAction, sessionUuid }) {
     const [thinkingBlocks, setThinkingBlocks] = React.useState({});
     const [historyLoaded, setHistoryLoaded] = React.useState(false);
     const [confirmationDialog, setConfirmationDialog] = React.useState(null);
+    const messagesContainerRef = React.useRef(null);
+
+    // Auto-scroll to bottom when messages change
+    React.useEffect(() => {
+        if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
+    }, [messages, thinkingBlocks]);
 
     // Load chat history on component mount
     React.useEffect(() => {
@@ -544,7 +552,7 @@ function ChatSidebar({ onAction, sessionUuid }) {
                     {isConnected ? '🟢' : '🔴'}
                 </div>
             </div>
-            <div className="chat-messages">
+            <div className="chat-messages" ref={messagesContainerRef}>
                 {!historyLoaded ? (
                     <div className="chat-loading">
                         <div className="spinner"></div>
