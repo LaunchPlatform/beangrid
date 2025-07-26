@@ -1,0 +1,29 @@
+sheets:
+  - name: Functions
+    cells:
+      - id: A1
+        value: "10"
+      - id: A2
+        value: "20"
+      - id: A3
+        value: "30"
+      - id: A4
+        value: "40"
+      - id: B1
+        formula: "=SUM(A1:A4)"
+      - id: B2
+        formula: "=AVERAGE(A1:A4)"
+      - id: B3
+        formula: "=MAX(A1:A4)"
+      - id: B4
+        formula: "=MIN(A1:A4)"
+      - id: C1
+        value: "Apple"
+      - id: C2
+        value: "Banana"
+      - id: C3
+        value: "Cherry"
+      - id: D1
+        formula: "=COUNT(A1:A4)"
+      - id: D2
+        formula: "=COUNTA(C1:C3)" 

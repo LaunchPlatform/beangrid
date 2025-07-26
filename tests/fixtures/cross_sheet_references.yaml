@@ -1,0 +1,37 @@
+sheets:
+  - name: Data
+    cells:
+      - id: A1
+        value: "Product"
+      - id: B1
+        value: "Sales"
+      - id: A2
+        value: "Widget A"
+      - id: B2
+        value: "100"
+      - id: A3
+        value: "Widget B"
+      - id: B3
+        value: "150"
+      - id: A4
+        value: "Widget C"
+      - id: B4
+        value: "75"
+  - name: Summary
+    cells:
+      - id: A1
+        value: "Total Sales"
+      - id: B1
+        formula: "=SUM(Data!B2:B4)"
+      - id: A2
+        value: "Average Sales"
+      - id: B2
+        formula: "=AVERAGE(Data!B2:B4)"
+      - id: A3
+        value: "Max Sales"
+      - id: B3
+        formula: "=MAX(Data!B2:B4)"
+      - id: A4
+        value: "Min Sales"
+      - id: B4
+        formula: "=MIN(Data!B2:B4)" 

@@ -121,7 +121,9 @@ class FormulaProcessor(Processor):
     def _extract_dependencies(self, cell: SchemeCell, sheet: Sheet, workbook: Workbook):
         """Extract cell dependencies from a formula."""
         try:
-            ast = parse_excel_formula(cell.formula)
+            # Strip the '=' prefix if present
+            formula = cell.formula.lstrip("=")
+            ast = parse_excel_formula(formula)
             cell_id = f"{sheet.name}!{cell.id}" if sheet.name else cell.id
             dependencies = self._find_cell_dependencies(ast, sheet.name)
 
@@ -257,6 +259,13 @@ class FormulaProcessor(Processor):
                 self, start_cell: str, end_cell: str, current_sheet: str = ""
             ) -> List[Any]:
                 """Get values from a cell range."""
+                # Extract sheet name if present
+                sheet_name = ""
+                if "!" in start_cell:
+                    sheet_name, start_cell = start_cell.split("!", 1)
+                elif "!" in end_cell:
+                    sheet_name, end_cell = end_cell.split("!", 1)
+
                 # Parse cell references to get row/column numbers
                 start_col, start_row = self._parse_cell_ref(start_cell)
                 end_col, end_row = self._parse_cell_ref(end_cell)
@@ -265,6 +274,8 @@ class FormulaProcessor(Processor):
                 for row in range(start_row, end_row + 1):
                     for col in range(start_col, end_col + 1):
                         cell_ref = self._format_cell_ref(col, row)
+                        if sheet_name:
+                            cell_ref = f"{sheet_name}!{cell_ref}"
                         value = self.get_cell_value(cell_ref, current_sheet)
                         values.append(value)
 

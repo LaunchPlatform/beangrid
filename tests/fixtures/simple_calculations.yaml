@@ -1,0 +1,25 @@
+sheets:
+  - name: Calculations
+    cells:
+      - id: A1
+        value: "10"
+      - id: B1
+        value: "20"
+      - id: C1
+        formula: "=A1+B1"
+      - id: A2
+        value: "5"
+      - id: B2
+        value: "3"
+      - id: C2
+        formula: "=A2*B2"
+      - id: A3
+        value: "100"
+      - id: B3
+        value: "4"
+      - id: C3
+        formula: "=A3/B3"
+      - id: A4
+        value: "15"
+      - id: B4
+        formula: "=A4^2" 

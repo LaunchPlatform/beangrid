@@ -78,6 +78,13 @@ class CellResolver:
         self, start_cell: str, end_cell: str, current_sheet: str = ""
     ) -> List[Any]:
         """Get values from a cell range."""
+        # Extract sheet name if present
+        sheet_name = ""
+        if "!" in start_cell:
+            sheet_name, start_cell = start_cell.split("!", 1)
+        elif "!" in end_cell:
+            sheet_name, end_cell = end_cell.split("!", 1)
+
         # Parse cell references to get row/column numbers
         start_col, start_row = self._parse_cell_ref(start_cell)
         end_col, end_row = self._parse_cell_ref(end_cell)
@@ -86,6 +93,8 @@ class CellResolver:
         for row in range(start_row, end_row + 1):
             for col in range(start_col, end_col + 1):
                 cell_ref = self._format_cell_ref(col, row)
+                if sheet_name:
+                    cell_ref = f"{sheet_name}!{cell_ref}"
                 value = self.get_cell_value(cell_ref, current_sheet)
                 values.append(value)
 
@@ -136,6 +145,8 @@ class FormulaEvaluator:
     def evaluate(self, formula: str, current_sheet: str = "") -> Any:
         """Evaluate an Excel formula."""
         try:
+            # Strip the '=' prefix if present
+            formula = formula.lstrip("=")
             ast = parse_excel_formula(formula)
             self.current_sheet = current_sheet
             return self._evaluate_ast(ast)
@@ -197,6 +208,8 @@ class FormulaEvaluator:
             return self._average(args)
         elif func_name == "COUNT":
             return self._count(args)
+        elif func_name == "COUNTA":
+            return self._counta(args)
         elif func_name == "MAX":
             return self._max(args)
         elif func_name == "MIN":
@@ -300,6 +313,16 @@ class FormulaEvaluator:
                 count += 1
         return count
 
+    def _counta(self, args: List[Any]) -> int:
+        """COUNTA function implementation - counts all non-empty values."""
+        count = 0
+        for arg in args:
+            if isinstance(arg, list):
+                count += len([v for v in arg if v is not None and v != ""])
+            elif arg is not None and arg != "":
+                count += 1
+        return count
+
     def _max(self, args: List[Any]) -> Any:
         """MAX function implementation."""
         values = []
@@ -346,8 +369,10 @@ class DependencyGraph:
 
     def add_dependency(self, cell_id: str, depends_on: str):
         """Add a dependency relationship."""
-        self.dependencies[cell_id].add(depends_on)
-        self.reverse_dependencies[depends_on].add(cell_id)
+        # Don't add self-references
+        if cell_id != depends_on:
+            self.dependencies[cell_id].add(depends_on)
+            self.reverse_dependencies[depends_on].add(cell_id)
 
     def get_dependencies(self, cell_id: str) -> Set[str]:
         """Get all dependencies for a cell."""
@@ -388,7 +413,7 @@ class DependencyGraph:
         """Get cells in dependency order for evaluation."""
         # Simple topological sort
         in_degree = defaultdict(int)
-        
+
         # Initialize in_degree for all cells that have dependencies
         for cell_id, deps in self.dependencies.items():
             for dep in deps:
