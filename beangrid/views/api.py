@@ -16,6 +16,8 @@ from ..core.yaml_processor import save_workbook_to_yaml
 from ..scheme.cell import Cell
 from ..scheme.cell import Workbook
 
+SPREADSHEET_SCHEMA = Workbook.model_json_schema()
+
 router = APIRouter(prefix="/api/v1")
 
 
@@ -47,38 +49,6 @@ class ChatResponse(BaseModel):
     response: str
     action: str | None = None
     action_args: dict | None = None
-
-
-# JSON schema for the spreadsheet YAML format
-SPREADSHEET_SCHEMA = {
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "type": "object",
-    "properties": {
-        "sheets": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "name": {"type": "string"},
-                    "cells": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "id": {"type": "string"},
-                                "value": {"type": ["string", "null"]},
-                                "formula": {"type": ["string", "null"]},
-                            },
-                            "required": ["id"],
-                        },
-                    },
-                },
-                "required": ["name", "cells"],
-            },
-        }
-    },
-    "required": ["sheets"],
-}
 
 
 @router.get("/workbook", response_model=WorkbookResponse)
