@@ -16,24 +16,32 @@ def get_templates() -> Jinja2Templates:
     return Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 
-TemplatesDeps = Annotated[Jinja2Templates, Depends(get_templates)]
+def get_workdir() -> Path:
+    workdir = os.getenv("WORKDIR")
+    if not workdir:
+        raise HTTPException(
+            status_code=403, detail="WORKDIR environment variable not set"
+        )
+    workdir_path = Path(workdir)
+    if not workdir_path.exists() or not workdir_path.is_dir():
+        raise HTTPException(
+            status_code=403, detail="WORKDIR does not exist or is not a directory"
+        )
+    return workdir_path
 
 
-def get_yaml_file_path() -> Path:
-    workbook_file = os.getenv("WORKBOOK_FILE")
-    if not workbook_file:
-        # Use default sample workbook if not provided
-        workbook_file = str(Path(__file__).parent.parent / "sample_workbook.yaml")
-    file_path = Path(workbook_file)
+def get_yaml_file_path(workdir: Path = Depends(get_workdir)) -> Path:
+    file_path = workdir / "workbook.yaml"
     if not file_path.exists():
-        raise HTTPException(status_code=404, detail="Workbook file not found")
+        raise HTTPException(status_code=403, detail="Workbook file not found")
     return file_path
 
 
 def get_yaml_content(file_path: Path = Depends(get_yaml_file_path)) -> str:
-    with open(file_path, "r", encoding="utf-8") as f:
-        return f.read()
+    return file_path.read_text(encoding="utf-8")
 
 
-YAMLFilePath = Annotated[Path, Depends(get_yaml_file_path)]
-YAMLContent = Annotated[str, Depends(get_yaml_content)]
+TemplatesDeps = Annotated[Jinja2Templates, Depends(get_templates)]
+YAMLFilePathDeps = Annotated[Path, Depends(get_yaml_file_path)]
+YAMLContentDeps = Annotated[str, Depends(get_yaml_content)]
+WorkdirDeps = Annotated[Path, Depends(get_workdir)]
