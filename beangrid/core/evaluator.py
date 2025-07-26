@@ -369,10 +369,8 @@ class DependencyGraph:
 
     def add_dependency(self, cell_id: str, depends_on: str):
         """Add a dependency relationship."""
-        # Don't add self-references
-        if cell_id != depends_on:
-            self.dependencies[cell_id].add(depends_on)
-            self.reverse_dependencies[depends_on].add(cell_id)
+        self.dependencies[cell_id].add(depends_on)
+        self.reverse_dependencies[depends_on].add(cell_id)
 
     def get_dependencies(self, cell_id: str) -> Set[str]:
         """Get all dependencies for a cell."""
