@@ -1,0 +1,65 @@
+sheets:
+  - name: Sales
+    cells:
+      - id: A1
+        value: "Product"
+      - id: B1
+        value: "Price"
+      - id: C1
+        value: "Quantity"
+      - id: D1
+        value: "Total"
+      - id: A2
+        value: "Widget A"
+      - id: B2
+        value: "10.50"
+      - id: C2
+        value: "5"
+      - id: D2
+        formula: "=B2*C2"
+      - id: A3
+        value: "Widget B"
+      - id: B3
+        value: "15.75"
+      - id: C3
+        value: "3"
+      - id: D3
+        formula: "=B3*C3"
+      - id: A4
+        value: "Widget C"
+      - id: B4
+        value: "8.25"
+      - id: C4
+        value: "7"
+      - id: D4
+        formula: "=B4*C4"
+      - id: A5
+        value: "Total"
+      - id: B5
+        value: ""
+      - id: C5
+        value: ""
+      - id: D5
+        formula: "=SUM(D2:D4)"
+  - name: Summary
+    cells:
+      - id: A1
+        value: "Summary"
+      - id: B1
+        value: "Value"
+      - id: A2
+        value: "Total Sales"
+      - id: B2
+        formula: "=Sales!D5"
+      - id: A3
+        value: "Average Price"
+      - id: B3
+        formula: "=AVERAGE(Sales!B2:B4)"
+      - id: A4
+        value: "Max Price"
+      - id: B4
+        formula: "=MAX(Sales!B2:B4)"
+      - id: A5
+        value: "Min Price"
+      - id: B5
+        formula: "=MIN(Sales!B2:B4)" 

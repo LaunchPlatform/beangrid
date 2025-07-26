@@ -3,28 +3,17 @@
 {% block title %}BeanGrid - Plaintext Spreadsheet{% endblock %}
 
 {% block content %}
-<h1>BeanGrid</h1>
-<p class="subtitle">Open-source plaintext based spreadsheet app</p>
-
-<p class="description">
-    BeanGrid is a powerful spreadsheet application that processes plaintext data with Excel-like formulas. 
-    It supports YAML-based workbooks, cross-sheet references, and advanced formula evaluation.
-</p>
-
-<div class="features">
-    <h3>Key Features:</h3>
-    <ul>
-        <li>📊 Excel-like formula evaluation</li>
-        <li>📁 YAML-based workbook format</li>
-        <li>🔗 Cross-sheet cell references</li>
-        <li>📈 Built-in functions (SUM, AVERAGE, MAX, MIN, COUNT, COUNTA, IF)</li>
-        <li>🔄 Dependency tracking and circular reference detection</li>
-        <li>⚡ Fast processing with dependency graphs</li>
-    </ul>
+<div id="app">
+    <!-- React app will be rendered here -->
 </div>
 
-<div class="cta">
-    <a href="https://github.com/LaunchPlatform/beangrid" class="btn">View on GitHub</a>
-    <a href="https://github.com/LaunchPlatform/beangrid" class="github-link">📦 Get Started</a>
-</div>
+<!-- React and ReactDOM CDN -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+<!-- Babel for JSX -->
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Our React app -->
+<script type="text/babel" src="{{ url_for('static', path='/app.js') }}"></script>
 {% endblock %} 

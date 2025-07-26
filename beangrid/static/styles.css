@@ -82,4 +82,162 @@ h1 {
 
 .github-link:hover {
     color: #333;
+}
+
+/* React App Styles */
+.workbook-viewer {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #eee;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 2rem;
+}
+
+.status {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.status.processed {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.sheet-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #ddd;
+}
+
+.tab {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    background: #f8f9fa;
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.tab:hover {
+    background: #e9ecef;
+}
+
+.tab.active {
+    background: #007bff;
+    color: white;
+}
+
+.sheets-container {
+    position: relative;
+}
+
+.sheet {
+    display: none;
+}
+
+.sheet.active {
+    display: block;
+}
+
+.table-container {
+    overflow-x: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.workbook-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+
+.workbook-table th,
+.workbook-table td {
+    border: 1px solid #ddd;
+    padding: 0.5rem;
+    text-align: center;
+    min-width: 80px;
+}
+
+.workbook-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
+.row-header,
+.column-header {
+    background: #e9ecef !important;
+    font-weight: 600;
+    color: #495057;
+}
+
+.cell {
+    background: white;
+    transition: background-color 0.2s;
+}
+
+.cell.has-formula {
+    background: #fff3cd;
+    color: #856404;
+    font-weight: 500;
+}
+
+.cell:hover {
+    background: #f8f9fa;
+}
+
+.loading {
+    text-align: center;
+    padding: 3rem;
+}
+
+.spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #007bff;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.error {
+    text-align: center;
+    padding: 2rem;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    color: #721c24;
+}
+
+.no-data {
+    text-align: center;
+    padding: 2rem;
+    background: #d1ecf1;
+    border: 1px solid #bee5eb;
+    border-radius: 4px;
+    color: #0c5460;
 } 
