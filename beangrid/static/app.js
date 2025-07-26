@@ -276,52 +276,234 @@ function ChatSidebar({ onAction }) {
     ]);
     const [input, setInput] = React.useState('');
     const [loading, setLoading] = React.useState(false);
+    const [websocket, setWebsocket] = React.useState(null);
+    const [isConnected, setIsConnected] = React.useState(false);
+    const [thinkingBlocks, setThinkingBlocks] = React.useState({});
+
+    // Initialize WebSocket connection
+    React.useEffect(() => {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        // Get session UUID from cookies or create a new one
+        let sessionUuid = getCookie('session_uuid');
+        if (!sessionUuid) {
+            sessionUuid = generateUUID();
+            setCookie('session_uuid', sessionUuid, 7); // 7 days
+        }
+        const wsUrl = `${protocol}//${window.location.host}/api/v1/chat/ws?session_uuid=${sessionUuid}`;
+        const ws = new WebSocket(wsUrl);
+        
+        ws.onopen = () => {
+            console.log('WebSocket connected');
+            setIsConnected(true);
+        };
+        
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            switch (data.type) {
+                case 'thinking_start':
+                    // Start a new thinking block
+                    const thinkingId = Date.now();
+                    setThinkingBlocks(prev => ({
+                        ...prev,
+                        [thinkingId]: { content: '', isOpen: true }
+                    }));
+                    setMessages(prev => [...prev, { 
+                        role: 'assistant', 
+                        content: '', 
+                        thinkingId: thinkingId,
+                        isThinking: true 
+                    }]);
+                    break;
+                    
+                case 'thinking_stream':
+                    // Update thinking content in real-time
+                    setThinkingBlocks(prev => {
+                        const latestThinkingId = Object.keys(prev).pop();
+                        if (latestThinkingId) {
+                            return {
+                                ...prev,
+                                [latestThinkingId]: {
+                                    ...prev[latestThinkingId],
+                                    content: prev[latestThinkingId].content + data.content
+                                }
+                            };
+                        }
+                        return prev;
+                    });
+                    break;
+                    
+                case 'thinking_end':
+                    // Mark thinking as complete and collapse after a delay
+                    setTimeout(() => {
+                        setThinkingBlocks(prev => {
+                            const latestThinkingId = Object.keys(prev).pop();
+                            if (latestThinkingId) {
+                                return {
+                                    ...prev,
+                                    [latestThinkingId]: {
+                                        ...prev[latestThinkingId],
+                                        isOpen: false
+                                    }
+                                };
+                            }
+                            return prev;
+                        });
+                    }, 2000); // Collapse after 2 seconds
+                    break;
+                    
+                case 'stream':
+                    setMessages(prev => {
+                        const newMessages = [...prev];
+                        const lastMessage = newMessages[newMessages.length - 1];
+                        if (lastMessage && lastMessage.role === 'assistant' && !lastMessage.isThinking) {
+                            lastMessage.content += data.content;
+                        } else {
+                            newMessages.push({ role: 'assistant', content: data.content });
+                        }
+                        return newMessages;
+                    });
+                    break;
+                    
+                case 'complete':
+                    setMessages(prev => {
+                        const newMessages = [...prev];
+                        // Remove thinking indicator if present
+                        const lastMessage = newMessages[newMessages.length - 1];
+                        if (lastMessage && lastMessage.isThinking) {
+                            newMessages.pop();
+                        }
+                        return newMessages;
+                    });
+                    setLoading(false);
+                    
+                    // Handle actions
+                    if (data.action && data.action_args) {
+                        if (data.action === 'update_cell') {
+                            if (window.confirm('Apply this cell update?')) {
+                                onAction(data.action, data.action_args);
+                            }
+                        } else if (data.action === 'update_workbook') {
+                            if (window.confirm('Apply this workbook update?')) {
+                                onAction(data.action, data.action_args);
+                            }
+                        }
+                    }
+                    break;
+                    
+                case 'error':
+                    setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${data.content}` }]);
+                    setLoading(false);
+                    break;
+            }
+        };
+        
+        ws.onclose = () => {
+            console.log('WebSocket disconnected');
+            setIsConnected(false);
+        };
+        
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            setIsConnected(false);
+        };
+        
+        setWebsocket(ws);
+        
+        return () => {
+            ws.close();
+        };
+    }, []);
+
+    // Helper functions for cookie management
+    function setCookie(name, value, days) {
+        const expires = new Date();
+        expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+        document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+    }
+
+    function getCookie(name) {
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(';');
+        for (let i = 0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
+    }
+
+    function generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
 
     const sendMessage = async () => {
-        if (!input.trim()) return;
-        const newMessages = [...messages, { role: 'user', content: input }];
-        setMessages(newMessages);
+        if (!input.trim() || !websocket || !isConnected) return;
+        
+        const userMessage = { role: 'user', content: input };
+        setMessages(prev => [...prev, userMessage]);
         setInput('');
         setLoading(true);
+        
         try {
-            const response = await fetch('/api/v1/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: input,
-                    history: newMessages.map(m => ({ role: m.role, content: m.content }))
-                })
-            });
-            const data = await response.json();
-            setMessages([...newMessages, { role: 'assistant', content: data.response }]);
-            setLoading(false);
-            if (data.action && data.action_args) {
-                if (data.action === 'update_cell') {
-                    // Ask user to confirm the action
-                    if (window.confirm(data.response + '\nApply this change?')) {
-                        onAction(data.action, data.action_args);
-                    }
-                } else if (data.action === 'update_workbook') {
-                    // Ask user to confirm the workbook update
-                    if (window.confirm(data.response + '\nApply this workbook update?')) {
-                        onAction(data.action, data.action_args);
-                    }
-                }
-            }
+            websocket.send(JSON.stringify({ message: input }));
         } catch (err) {
-            setMessages([...newMessages, { role: 'assistant', content: 'Error: ' + err.message }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: 'Error: ' + err.message }]);
             setLoading(false);
         }
     };
 
+    const renderMessage = (msg, index) => {
+        if (msg.thinkingId && thinkingBlocks[msg.thinkingId]) {
+            const thinkingBlock = thinkingBlocks[msg.thinkingId];
+            return (
+                <div key={index} className={`chat-msg assistant thinking-block ${thinkingBlock.isOpen ? 'open' : 'collapsed'}`}>
+                    <div className="thinking-header" onClick={() => {
+                        setThinkingBlocks(prev => ({
+                            ...prev,
+                            [msg.thinkingId]: {
+                                ...prev[msg.thinkingId],
+                                isOpen: !prev[msg.thinkingId].isOpen
+                            }
+                        }));
+                    }}>
+                        <span className="thinking-icon">🤔</span>
+                        <span className="thinking-title">
+                            {thinkingBlock.isOpen ? 'Hide thinking process' : 'Show thinking process'}
+                        </span>
+                        <span className="thinking-toggle">{thinkingBlock.isOpen ? '▼' : '▶'}</span>
+                    </div>
+                    {thinkingBlock.isOpen && (
+                        <div className="thinking-content">
+                            <pre>{thinkingBlock.content}</pre>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+        
+        return (
+            <div key={index} className={`chat-msg ${msg.role} ${msg.isThinking ? 'thinking' : ''}`}>
+                {msg.content}
+            </div>
+        );
+    };
+
     return (
         <div className="chat-sidebar">
-            <div className="chat-header">🤖 Spreadsheet Chat</div>
+            <div className="chat-header">
+                🤖 Spreadsheet Chat
+                <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
+                    {isConnected ? '🟢' : '🔴'}
+                </div>
+            </div>
             <div className="chat-messages">
-                {messages.map((msg, i) => (
-                    <div key={i} className={`chat-msg ${msg.role}`}>{msg.content}</div>
-                ))}
-                {loading && <div className="chat-msg assistant">...</div>}
+                {messages.map((msg, i) => renderMessage(msg, i))}
+                {loading && <div className="chat-msg assistant thinking">🤔 Thinking...</div>}
             </div>
             <div className="chat-input-bar">
                 <input
@@ -330,8 +512,11 @@ function ChatSidebar({ onAction }) {
                     onChange={e => setInput(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') sendMessage(); }}
                     placeholder="Ask about your spreadsheet..."
+                    disabled={!isConnected}
                 />
-                <button onClick={sendMessage} disabled={loading || !input.trim()}>Send</button>
+                <button onClick={sendMessage} disabled={loading || !input.trim() || !isConnected}>
+                    Send
+                </button>
             </div>
         </div>
     );

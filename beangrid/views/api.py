@@ -14,6 +14,8 @@ from fastapi import Body
 from fastapi import Depends
 from fastapi import HTTPException
 from fastapi import Request
+from fastapi import WebSocket
+from fastapi import WebSocketDisconnect
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
@@ -296,6 +298,180 @@ async def chat_endpoint(
             pass
 
     return ChatResponse(response=llm_reply, action=action, action_args=action_args)
+
+
+@router.websocket("/chat/ws")
+async def websocket_chat_endpoint(
+    websocket: WebSocket,
+    yaml_content: deps.YAMLContentWebSocketDeps,
+    chat_file: deps.ChatFileWebSocketDeps,
+):
+    """WebSocket endpoint for real-time chat with streaming support."""
+    await websocket.accept()
+
+    try:
+        # Initialize chat history similar to the HTTP endpoint
+        if not chat_file.exists():
+            static_system_prompt = (
+                "You are a helpful spreadsheet assistant. "
+                "The user is working with a spreadsheet in YAML format. "
+                "Here is the JSON schema for the spreadsheet:\n"
+                f"{json.dumps(SPREADSHEET_SCHEMA, indent=2)}\n\n"
+                "Answer the user's questions or suggest spreadsheet updates as needed. "
+                "You can suggest actions in two ways:\n"
+                '1. For cell updates: {"action": "update_cell", "action_args": {"sheet_name": "Sheet1", "cell_id": "A1", "value": "New Value"}}\n'
+                '2. For full workbook updates: {"action": "update_workbook", "action_args": {"yaml_content": "complete yaml content here", "commit_message": "Description of changes"}}\n'
+                "When suggesting workbook updates, provide the complete YAML content (not just the changes) and a clear commit message describing what was changed. "
+                "The yaml_content should be the full workbook YAML, not just the modified parts.\n\n"
+                "IMPORTANT: When you need to think through a problem or analyze the spreadsheet, "
+                "enclose your thinking process between <think> and </think> tags. "
+                "This helps users understand your reasoning process. "
+                "For example:\n"
+                "<think>\n"
+                "Let me analyze the current spreadsheet structure...\n"
+                "I need to check what data is available...\n"
+                "</think>\n"
+                "Then provide your final answer or recommendation."
+            )
+            yaml_system_message = {
+                "role": "system",
+                "content": f"Current spreadsheet YAML content:\n{yaml_content}",
+            }
+            history = [
+                {"role": "system", "content": static_system_prompt},
+                yaml_system_message,
+            ]
+            with chat_file.open("w", encoding="utf-8") as f:
+                for msg in history:
+                    f.write(json.dumps(msg, ensure_ascii=False) + "\n")
+        else:
+            with chat_file.open("r", encoding="utf-8") as f:
+                history = [json.loads(line) for line in f if line.strip()]
+
+        while True:
+            # Receive message from client
+            data = await websocket.receive_text()
+            message_data = json.loads(data)
+            user_message = message_data.get("message", "")
+
+            # Append user message to history
+            user_msg = {"role": "user", "content": user_message}
+            messages = history + [user_msg]
+
+            # Write user message to chat file
+            with chat_file.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(user_msg, ensure_ascii=False) + "\n")
+
+            # Send thinking indicator
+            await websocket.send_text(
+                json.dumps({"type": "thinking", "content": "🤔 Thinking..."})
+            )
+
+            # Stream the LLM response
+            try:
+                response = await litellm.acompletion(
+                    model="ollama/deepseek-r1:32b",
+                    messages=messages,
+                    stream=True,
+                    api_base="http://192.168.50.71:11434",
+                )
+
+                full_response = ""
+                thinking_content = ""
+                in_thinking_block = False
+                thinking_complete = False
+                current_thinking_content = ""
+
+                async for chunk in response:
+                    if chunk and "choices" in chunk and len(chunk["choices"]) > 0:
+                        delta = chunk["choices"][0].get("delta", {})
+                        if "content" in delta and delta["content"]:
+                            content = delta["content"]
+                            full_response += content
+
+                            # Check for thinking blocks
+                            if "<think>" in content:
+                                in_thinking_block = True
+                                # Remove the <think> tag from content before sending
+                                content = content.replace("<think>", "")
+                                # Send thinking start indicator
+                                await websocket.send_text(
+                                    json.dumps(
+                                        {"type": "thinking_start", "content": ""}
+                                    )
+                                )
+
+                            if in_thinking_block:
+                                thinking_content += content
+                                # Send thinking content in real-time (without tags)
+                                await websocket.send_text(
+                                    json.dumps(
+                                        {"type": "thinking_stream", "content": content}
+                                    )
+                                )
+
+                            if "</think>" in content:
+                                in_thinking_block = False
+                                thinking_complete = True
+                                # Remove the </think> tag from content
+                                content = content.replace("</think>", "")
+                                # Send thinking end indicator
+                                await websocket.send_text(
+                                    json.dumps({"type": "thinking_end", "content": ""})
+                                )
+
+                            # Only send regular stream content if not in thinking block and content is not empty
+                            if not in_thinking_block and content.strip():
+                                await websocket.send_text(
+                                    json.dumps({"type": "stream", "content": content})
+                                )
+
+                # Clean the response by removing thinking tags for chat history
+                cleaned_response = re.sub(
+                    r"<think>.*?</think>", "", full_response, flags=re.DOTALL
+                ).strip()
+
+                # Write assistant message to chat file (without thinking tags)
+                assistant_message = {"role": "assistant", "content": cleaned_response}
+                with chat_file.open("a", encoding="utf-8") as f:
+                    f.write(json.dumps(assistant_message, ensure_ascii=False) + "\n")
+
+                # Try to extract action from response
+                action = None
+                action_args = None
+                match = re.search(
+                    r'\{\s*"action"\s*:\s*"[^"]+".*\}', full_response, re.DOTALL
+                )
+                if match:
+                    try:
+                        action_json = json.loads(match.group(0))
+                        action = action_json.get("action")
+                        action_args = action_json.get("action_args")
+                    except Exception:
+                        pass
+
+                # Send completion signal with action info
+                await websocket.send_text(
+                    json.dumps(
+                        {
+                            "type": "complete",
+                            "action": action,
+                            "action_args": action_args,
+                        }
+                    )
+                )
+
+            except Exception as e:
+                await websocket.send_text(
+                    json.dumps({"type": "error", "content": f"LLM error: {e}"})
+                )
+
+    except WebSocketDisconnect:
+        print("WebSocket client disconnected")
+    except Exception as e:
+        await websocket.send_text(
+            json.dumps({"type": "error", "content": f"WebSocket error: {e}"})
+        )
 
 
 @router.get("/workbook/yaml", response_class=PlainTextResponse)

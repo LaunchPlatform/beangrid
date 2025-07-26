@@ -8,6 +8,7 @@ from typing import Annotated
 from fastapi import Depends
 from fastapi import HTTPException
 from fastapi import Request
+from fastapi import WebSocket
 from fastapi.templating import Jinja2Templates
 
 from .scheme.cell import Cell
@@ -118,7 +119,61 @@ def get_workdir(request: Request) -> Path:
     return workdir_path
 
 
+def get_workdir_for_websocket(websocket: WebSocket) -> Path:
+    """WebSocket-compatible workdir dependency that uses query parameters for session."""
+    # Get session UUID from query parameters
+    session_uuid = websocket.query_params.get("session_uuid")
+
+    if session_uuid:
+        # Validate UUID format
+        try:
+            uuid.UUID(session_uuid)
+            # Try to use existing workdir
+            workdir_path = Path(tempfile.gettempdir()) / f"beangrid_{session_uuid}"
+            if workdir_path.exists() and workdir_path.is_dir():
+                return workdir_path
+        except ValueError:
+            # Invalid UUID format, treat as no session
+            pass
+
+    # Create new workdir with UUID
+    new_uuid = str(uuid.uuid4())
+    workdir_path = Path(tempfile.gettempdir()) / f"beangrid_{new_uuid}"
+    workdir_path.mkdir(parents=True, exist_ok=True)
+
+    # Initialize sample workbook.yaml using Pydantic models
+    workbook_file = workdir_path / "workbook.yaml"
+    sample_workbook = create_sample_workbook()
+
+    # Import here to avoid circular imports
+    from .core.yaml_processor import save_workbook_to_yaml
+
+    save_workbook_to_yaml(sample_workbook, workbook_file)
+
+    # Initialize git repo
+    try:
+        subprocess.run(["git", "init"], cwd=workdir_path, check=True)
+        subprocess.run(["git", "add", "workbook.yaml"], cwd=workdir_path, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Initial commit"], cwd=workdir_path, check=True
+        )
+    except subprocess.CalledProcessError as e:
+        # Git might not be available, continue without git
+        pass
+
+    return workdir_path
+
+
 def get_yaml_file_path(workdir: Path = Depends(get_workdir)) -> Path:
+    file_path = workdir / "workbook.yaml"
+    if not file_path.exists():
+        raise HTTPException(status_code=403, detail="Workbook file not found")
+    return file_path
+
+
+def get_yaml_file_path_for_websocket(
+    workdir: Path = Depends(get_workdir_for_websocket),
+) -> Path:
     file_path = workdir / "workbook.yaml"
     if not file_path.exists():
         raise HTTPException(status_code=403, detail="Workbook file not found")
@@ -129,7 +184,19 @@ def get_yaml_content(file_path: Path = Depends(get_yaml_file_path)) -> str:
     return file_path.read_text(encoding="utf-8")
 
 
+def get_yaml_content_for_websocket(
+    file_path: Path = Depends(get_yaml_file_path_for_websocket),
+) -> str:
+    return file_path.read_text(encoding="utf-8")
+
+
 def get_chat_file(workdir: Path = Depends(get_workdir)) -> Path:
+    return workdir / "chat.jsonl"
+
+
+def get_chat_file_for_websocket(
+    workdir: Path = Depends(get_workdir_for_websocket),
+) -> Path:
     return workdir / "chat.jsonl"
 
 
@@ -138,3 +205,9 @@ YAMLFilePathDeps = Annotated[Path, Depends(get_yaml_file_path)]
 YAMLContentDeps = Annotated[str, Depends(get_yaml_content)]
 WorkdirDeps = Annotated[Path, Depends(get_workdir)]
 ChatFileDeps = Annotated[Path, Depends(get_chat_file)]
+
+# WebSocket-specific dependencies
+YAMLFilePathWebSocketDeps = Annotated[Path, Depends(get_yaml_file_path_for_websocket)]
+YAMLContentWebSocketDeps = Annotated[str, Depends(get_yaml_content_for_websocket)]
+WorkdirWebSocketDeps = Annotated[Path, Depends(get_workdir_for_websocket)]
+ChatFileWebSocketDeps = Annotated[Path, Depends(get_chat_file_for_websocket)]
