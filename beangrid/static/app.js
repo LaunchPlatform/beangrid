@@ -79,10 +79,21 @@ function WorkbookViewer({ onWorkbookLoaded }) {
             });
 
             if (response.ok) {
+                console.log('Cell updated successfully, refreshing workbook...');
                 // Refresh the workbook data
                 await fetchWorkbook();
-                // Keep the cell selected but clear the formula bar
-                setFormulaBar({ value: '', formula: '', showFormula: false });
+                console.log('Workbook refreshed, updated data:', workbook);
+                // Keep the cell selected and update formula bar with new values
+                const updatedCell = workbook?.sheets?.find(s => s.name === selectedCell.sheetName)?.cells?.find(c => c.id === selectedCell.id);
+                if (updatedCell) {
+                    setFormulaBar({
+                        value: updatedCell.value || '',
+                        formula: updatedCell.formula || '',
+                        showFormula: !!(updatedCell.formula && updatedCell.formula.trim())
+                    });
+                } else {
+                    setFormulaBar({ value: '', formula: '', showFormula: false });
+                }
             } else {
                 const errorData = await response.json();
                 console.error('Error response:', errorData);
