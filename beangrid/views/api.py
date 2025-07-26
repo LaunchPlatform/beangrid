@@ -242,32 +242,56 @@ async def get_cell(file_path: deps.YAMLFilePathDeps, sheet_name: str, cell_id: s
 async def chat_endpoint(
     request: Request,
     yaml_content: deps.YAMLContentDeps,
+    workdir: deps.WorkdirDeps,
+    chat_file: deps.ChatFileDeps,
     chat: ChatRequest = Body(...),
 ):
-    """Chat endpoint for LLM interaction with spreadsheet context using litellm."""
-    # Compose system prompt
-    system_prompt = (
-        "You are a helpful spreadsheet assistant. "
-        "The user is working with a spreadsheet in YAML format. "
-        "Here is the spreadsheet YAML:\n"
-        f"{yaml_content}\n\n"
-        "Here is the JSON schema for the spreadsheet:\n"
-        f"{_json.dumps(SPREADSHEET_SCHEMA, indent=2)}\n\n"
-        "Answer the user's questions or suggest spreadsheet updates as needed. "
-        'If you want to suggest an action, respond with a JSON object like: {"action": "update_cell", "action_args": { ... }}. '
-        "Otherwise, just answer in plain text."
-    )
+    """Chat endpoint for LLM interaction with spreadsheet context using litellm and persistent chat history."""
 
-    # Prepare chat history for LLM
-    messages = [{"role": "system", "content": system_prompt}]
-    for msg in chat.history:
-        messages.append({"role": msg["role"], "content": msg["content"]})
-    messages.append({"role": "user", "content": chat.message})
+    # 1. Check if chat file exists, if not create it and insert system prompts
+    if not chat_file.exists():
+        static_system_prompt = (
+            "You are a helpful spreadsheet assistant. "
+            "The user is working with a spreadsheet in YAML format. "
+            "Here is the JSON schema for the spreadsheet:\n"
+            f"{_json.dumps(SPREADSHEET_SCHEMA, indent=2)}\n\n"
+            "Answer the user's questions or suggest spreadsheet updates as needed. "
+            'If you want to suggest an action, respond with a JSON object like: {"action": "update_cell", "action_args": { ... }}. '
+            "Otherwise, just answer in plain text."
+        )
+        yaml_system_message = {
+            "role": "system",
+            "content": f"Current spreadsheet YAML content:\n{yaml_content}",
+        }
+        # Initialize history with system prompts
+        history = [
+            {"role": "system", "content": static_system_prompt},
+            yaml_system_message,
+        ]
+        # Write system prompts to file
+        with chat_file.open("w", encoding="utf-8") as f:
+            for msg in history:
+                f.write(json.dumps(msg, ensure_ascii=False) + "\n")
+    else:
+        # 2. If chat file exists, read messages into history variable
+        history = []
+        with chat_file.open("r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    history.append(json.loads(line))
 
-    # Call LLM via litellm (default: openai/gpt-3.5-turbo, or configure for ollama)
+    # 3. Append user chat message to messages and write to chat file
+    user_message = {"role": "user", "content": chat.message}
+    messages = history + [user_message]
+
+    # Write user message to chat file
+    with chat_file.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(user_message, ensure_ascii=False) + "\n")
+
+    # 4. Submit messages to LLM using litellm
     try:
         response = await litellm.acompletion(
-            model="ollama/deepseek-r1:32b",  # Change to your preferred model
+            model="ollama/deepseek-r1:32b",
             messages=messages,
             stream=False,
             api_base="http://192.168.50.71:11434",
@@ -276,10 +300,14 @@ async def chat_endpoint(
     except Exception as e:
         return ChatResponse(response=f"LLM error: {e}")
 
+    # 5. Write LLM reply to chat file
+    assistant_message = {"role": "assistant", "content": llm_reply}
+    with chat_file.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(assistant_message, ensure_ascii=False) + "\n")
+
     # Try to extract action from LLM reply if present
     action = None
     action_args = None
-    # Look for a JSON object in the reply
     match = re.search(r'\{\s*"action"\s*:\s*"[^"]+".*\}', llm_reply, re.DOTALL)
     if match:
         try:
@@ -288,6 +316,7 @@ async def chat_endpoint(
             action_args = action_json.get("action_args")
         except Exception:
             pass
+
     return ChatResponse(response=llm_reply, action=action, action_args=action_args)
 
 

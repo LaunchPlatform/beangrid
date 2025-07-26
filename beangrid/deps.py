@@ -41,7 +41,12 @@ def get_yaml_content(file_path: Path = Depends(get_yaml_file_path)) -> str:
     return file_path.read_text(encoding="utf-8")
 
 
+def get_chat_file(workdir: Path = Depends(get_workdir)) -> Path:
+    return workdir / "chat.jsonl"
+
+
 TemplatesDeps = Annotated[Jinja2Templates, Depends(get_templates)]
 YAMLFilePathDeps = Annotated[Path, Depends(get_yaml_file_path)]
 YAMLContentDeps = Annotated[str, Depends(get_yaml_content)]
 WorkdirDeps = Annotated[Path, Depends(get_workdir)]
+ChatFileDeps = Annotated[Path, Depends(get_chat_file)]
