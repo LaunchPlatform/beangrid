@@ -141,18 +141,6 @@ async def get_raw_workbook():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def _get_workbook_file_path():
-    """Get the workbook file path from environment or default."""
-    workbook_file = os.getenv("WORKBOOK_FILE")
-
-    if not workbook_file:
-        workbook_file = str(
-            Path(__file__).parent.parent.parent / "sample_workbook.yaml"
-        )
-
-    return Path(workbook_file)
-
-
 @router.put("/workbook/cell")
 async def update_cell(
     file_path: deps.YAMLFilePathDeps, request: CellUpdateRequest = Body(...)
