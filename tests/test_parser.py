@@ -1,14 +1,14 @@
 import pytest
 
-from beangrid.core.parser import BinOp
-from beangrid.core.parser import Bool
-from beangrid.core.parser import Cell
-from beangrid.core.parser import CellRange
-from beangrid.core.parser import FuncCall
-from beangrid.core.parser import Number
+from beangrid.core.ast import BinOp
+from beangrid.core.ast import Bool
+from beangrid.core.ast import Cell
+from beangrid.core.ast import CellRange
+from beangrid.core.ast import FuncCall
+from beangrid.core.ast import Number
+from beangrid.core.ast import String
+from beangrid.core.ast import UnaryOp
 from beangrid.core.parser import parse_excel_formula
-from beangrid.core.parser import String
-from beangrid.core.parser import UnaryOp
 
 
 @pytest.mark.parametrize(
