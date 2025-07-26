@@ -9,9 +9,7 @@ from fastapi import Depends
 from fastapi import HTTPException
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
-from starlette.middleware.sessions import SessionMiddleware
 
-from beangrid.core.config import settings
 
 # Get the templates directory
 TEMPLATES_DIR = Path(__file__).parent / "templates"

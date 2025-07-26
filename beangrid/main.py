@@ -4,12 +4,12 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from .deps import settings
+from .core.config import settings
 from .views import api as api_router
 from .views import home as home_router
 
 
-def create_app() -> FastAPI:
+def make_app() -> FastAPI:
     app = FastAPI(title="BeanGrid", version="1.0.0")
 
     # Add session middleware
@@ -27,6 +27,3 @@ def create_app() -> FastAPI:
     app.include_router(api_router.router, prefix="/api/v1")
 
     return app
-
-
-app = create_app()
