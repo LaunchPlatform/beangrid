@@ -50,18 +50,22 @@ function WorkbookViewer() {
     const handleCellUpdate = async () => {
         if (!selectedCell) return;
 
+        const requestData = {
+            sheet_name: selectedCell.sheetName,
+            cell_id: selectedCell.id,
+            value: formulaBar.showFormula ? null : formulaBar.value,
+            formula: formulaBar.showFormula ? formulaBar.formula : null
+        };
+
+        console.log('Sending request:', requestData);
+
         try {
             const response = await fetch('/api/v1/workbook/cell', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    sheet_name: selectedCell.sheetName,
-                    cell_id: selectedCell.id,
-                    value: formulaBar.showFormula ? null : formulaBar.value,
-                    formula: formulaBar.showFormula ? formulaBar.formula : null
-                })
+                body: JSON.stringify(requestData)
             });
 
             if (response.ok) {
@@ -71,9 +75,11 @@ function WorkbookViewer() {
                 setFormulaBar({ value: '', formula: '', showFormula: false });
             } else {
                 const errorData = await response.json();
+                console.error('Error response:', errorData);
                 alert('Error updating cell: ' + errorData.detail);
             }
         } catch (err) {
+            console.error('Request error:', err);
             alert('Error updating cell: ' + err.message);
         }
     };

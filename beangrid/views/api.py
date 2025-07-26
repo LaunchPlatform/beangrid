@@ -5,6 +5,7 @@ from typing import Dict
 from typing import List
 
 from fastapi import APIRouter
+from fastapi import Body
 from fastapi import HTTPException
 from pydantic import BaseModel
 
@@ -30,8 +31,8 @@ class CellUpdateRequest(BaseModel):
 
     sheet_name: str
     cell_id: str
-    value: str = None
-    formula: str = None
+    value: str | None = None
+    formula: str | None = None
 
 
 @router.get("/workbook", response_model=WorkbookResponse)
@@ -129,8 +130,9 @@ def _get_workbook_file_path():
 
 
 @router.put("/workbook/cell")
-async def update_cell(request: CellUpdateRequest):
+async def update_cell(request: CellUpdateRequest = Body(...)):
     """Update a cell in the workbook and save to YAML file."""
+    print(f"Received cell update request: {request}")
     try:
         file_path = _get_workbook_file_path()
 
@@ -160,17 +162,21 @@ async def update_cell(request: CellUpdateRequest):
             if cell.id == request.cell_id:
                 # Update cell values
                 if request.value is not None:
-                    cell.value = request.value
+                    cell.value = request.value if request.value.strip() else None
+                    print(f"Updated cell {request.cell_id} value to: {cell.value}")
                 if request.formula is not None:
-                    cell.formula = request.formula
+                    cell.formula = request.formula if request.formula.strip() else None
+                    print(f"Updated cell {request.cell_id} formula to: {cell.formula}")
                 cell_updated = True
                 break
 
         if not cell_updated:
             # Create new cell if it doesn't exist
-            new_cell = Cell(
-                id=request.cell_id, value=request.value, formula=request.formula
+            value = request.value if request.value and request.value.strip() else None
+            formula = (
+                request.formula if request.formula and request.formula.strip() else None
             )
+            new_cell = Cell(id=request.cell_id, value=value, formula=formula)
             sheet.cells.append(new_cell)
 
         # Save the updated workbook back to YAML
