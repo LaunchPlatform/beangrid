@@ -6,12 +6,12 @@ from typing import List
 from typing import Set
 from typing import Tuple
 
+from ..scheme.cell import Cell as SchemeCell
+from ..scheme.cell import Sheet
+from ..scheme.cell import Workbook
 from .evaluator import DependencyGraph
 from .evaluator import FormulaEvaluator
 from .parser import parse_excel_formula
-from beangrid.scheme.cell import Cell as SchemeCell
-from beangrid.scheme.cell import Sheet
-from beangrid.scheme.cell import Workbook
 
 
 class Processor(ABC):
