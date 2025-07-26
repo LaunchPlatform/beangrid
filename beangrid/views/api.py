@@ -133,7 +133,6 @@ async def update_cell(
     file_path: deps.YAMLFilePathDeps, request: CellUpdateRequest = Body(...)
 ):
     """Update a cell in the workbook and save to YAML file."""
-    print(f"Received cell update request: {request}")
     try:
         # Load the current workbook
         workbook = load_workbook_from_yaml(file_path)
@@ -157,10 +156,8 @@ async def update_cell(
                 # Update cell values
                 if request.value is not None:
                     cell.value = request.value if request.value.strip() else None
-                    print(f"Updated cell {request.cell_id} value to: {cell.value}")
                 if request.formula is not None:
                     cell.formula = request.formula if request.formula.strip() else None
-                    print(f"Updated cell {request.cell_id} formula to: {cell.formula}")
                 cell_updated = True
                 break
 
@@ -423,9 +420,6 @@ async def websocket_chat_endpoint(
                                 in_thinking_block = True
                                 # Remove the <think> tag from content before sending
                                 content = content.replace("<think>", "")
-                                print(
-                                    f"[WEBSOCKET] Thinking started, content after <think> removal: '{content}'"
-                                )
                                 # Send thinking start indicator
                                 await websocket.send_text(
                                     json.dumps(
@@ -447,9 +441,6 @@ async def websocket_chat_endpoint(
 
                                     # Send the thinking content before </think>
                                     if thinking_part.strip():
-                                        print(
-                                            f"[WEBSOCKET] Sending final thinking content: '{thinking_part}'"
-                                        )
                                         await websocket.send_text(
                                             json.dumps(
                                                 {
@@ -468,9 +459,6 @@ async def websocket_chat_endpoint(
 
                                     # Send any remaining content after </think> as regular content
                                     if remaining_part.strip():
-                                        print(
-                                            f"[WEBSOCKET] Sending content after thinking: '{remaining_part}'"
-                                        )
                                         await websocket.send_text(
                                             json.dumps(
                                                 {
@@ -481,9 +469,6 @@ async def websocket_chat_endpoint(
                                         )
                                 else:
                                     # Regular thinking content
-                                    print(
-                                        f"[WEBSOCKET] Sending thinking content: '{content}'"
-                                    )
                                     await websocket.send_text(
                                         json.dumps(
                                             {
@@ -495,9 +480,6 @@ async def websocket_chat_endpoint(
 
                             # Only send regular stream content if not in thinking block and content is not empty
                             elif content.strip():
-                                print(
-                                    f"[WEBSOCKET] Sending regular content: '{content}'"
-                                )
                                 await websocket.send_text(
                                     json.dumps({"type": "stream", "content": content})
                                 )
@@ -543,7 +525,7 @@ async def websocket_chat_endpoint(
                 )
 
     except WebSocketDisconnect:
-        print("WebSocket client disconnected")
+        pass
     except Exception as e:
         await websocket.send_text(
             json.dumps({"type": "error", "content": f"WebSocket error: {e}"})
