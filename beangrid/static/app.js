@@ -812,6 +812,28 @@ function App() {
         }
     };
     
+    const handleNewSession = async () => {
+        try {
+            const response = await fetch('/api/v1/session/new', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('New session created:', data.session_uuid);
+                // Reload the page to use the new session
+                window.location.reload();
+            } else {
+                console.error('Failed to create new session');
+                alert('Failed to create new session');
+            }
+        } catch (error) {
+            console.error('Error creating new session:', error);
+            alert('Error creating new session');
+        }
+    };
+    
     const handleWorkbookLoaded = (sessionUuid) => {
         setSessionUuid(sessionUuid);
     };
@@ -827,6 +849,7 @@ function App() {
                     <button className={tab === 'spreadsheet' ? 'active' : ''} onClick={() => setTab('spreadsheet')}>Spreadsheet</button>
                     <button className={tab === 'yaml' ? 'active' : ''} onClick={() => setTab('yaml')}>YAML</button>
                     <button className={tab === 'diff' ? 'active' : ''} onClick={() => setTab('diff')}>Diff</button>
+                    <button className="new-session-btn" onClick={handleNewSession} title="Create new session">🆕 New Session</button>
                 </div>
                 {tab === 'spreadsheet' && <WorkbookViewer ref={workbookRef} onWorkbookLoaded={handleWorkbookLoaded} />}
                 {tab === 'yaml' && <YamlEditor onClose={() => setTab('spreadsheet')} onSaved={handleYamlSaved} />}

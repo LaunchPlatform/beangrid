@@ -739,6 +739,23 @@ h1 {
     background: #e9ecef;
 }
 
+.tab-bar .new-session-btn {
+    margin-left: auto;
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+}
+
+.tab-bar .new-session-btn:hover {
+    background: #218838;
+}
+
 /* YAML Editor */
 .yaml-editor {
     padding: 1.5rem;

@@ -611,3 +611,17 @@ async def commit_yaml_file(
         return {"message": "Committed successfully"}
     except subprocess.CalledProcessError as e:
         raise HTTPException(status_code=500, detail=f"Git commit error: {e}")
+
+
+@router.post("/session/new")
+async def create_new_session(request: Request):
+    """Create a new workdir session."""
+    import uuid
+
+    # Generate new UUID
+    new_uuid = str(uuid.uuid4())
+
+    # Set session
+    request.session["workdir_uuid"] = new_uuid
+
+    return {"session_uuid": new_uuid, "message": "New session created successfully"}
