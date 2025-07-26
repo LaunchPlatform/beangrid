@@ -22,7 +22,7 @@ sheets:
   - id: B3
     value: '15.75'
   - id: C3
-    value: '11'
+    value: '4'
   - id: D3
     formula: =B3*C3
   - id: A4
