@@ -278,6 +278,7 @@ function ChatSidebar({ onAction }) {
     const [isConnected, setIsConnected] = React.useState(false);
     const [thinkingBlocks, setThinkingBlocks] = React.useState({});
     const [historyLoaded, setHistoryLoaded] = React.useState(false);
+    const [confirmationDialog, setConfirmationDialog] = React.useState(null);
 
     // Load chat history on component mount
     React.useEffect(() => {
@@ -309,6 +310,31 @@ function ChatSidebar({ onAction }) {
         } finally {
             setHistoryLoaded(true);
         }
+    };
+
+    const handleActionConfirmation = (action, actionArgs, description) => {
+        setConfirmationDialog({
+            action,
+            actionArgs,
+            description,
+            type: action === 'update_cell' ? 'cell' : 'workbook'
+        });
+    };
+
+    const confirmAction = async () => {
+        if (!confirmationDialog) return;
+        
+        try {
+            await onAction(confirmationDialog.action, confirmationDialog.actionArgs);
+            setConfirmationDialog(null);
+        } catch (error) {
+            console.error('Action failed:', error);
+            setConfirmationDialog(null);
+        }
+    };
+
+    const cancelAction = () => {
+        setConfirmationDialog(null);
     };
 
     // Initialize WebSocket connection
@@ -411,13 +437,9 @@ function ChatSidebar({ onAction }) {
                     // Handle actions
                     if (data.action && data.action_args) {
                         if (data.action === 'update_cell') {
-                            if (window.confirm('Apply this cell update?')) {
-                                onAction(data.action, data.action_args);
-                            }
+                            handleActionConfirmation('update_cell', data.action_args, 'Apply this cell update?');
                         } else if (data.action === 'update_workbook') {
-                            if (window.confirm('Apply this workbook update?')) {
-                                onAction(data.action, data.action_args);
-                            }
+                            handleActionConfirmation('update_workbook', data.action_args, 'Apply this workbook update?');
                         }
                     }
                     break;
@@ -571,6 +593,13 @@ function ChatSidebar({ onAction }) {
                     Send
                 </button>
             </div>
+            {confirmationDialog && (
+                <div className="confirmation-dialog">
+                    <p>{confirmationDialog.description}</p>
+                    <button onClick={confirmAction} className="btn-confirm">Yes</button>
+                    <button onClick={cancelAction} className="btn-cancel">No</button>
+                </div>
+            )}
         </div>
     );
 }
@@ -712,18 +741,21 @@ function App() {
     const workbookRef = React.useRef();
     const handleLLMAction = async (action, args) => {
         if (action === 'update_cell') {
-            await fetch('/api/v1/workbook/cell', {
+            const response = await fetch('/api/v1/workbook/cell', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(args)
             });
+            if (!response.ok) {
+                throw new Error('Failed to update cell');
+            }
             if (workbookRef.current && workbookRef.current.fetchWorkbook) {
                 workbookRef.current.fetchWorkbook();
             } else {
                 window.location.reload();
             }
         } else if (action === 'update_workbook') {
-            await fetch('/api/v1/workbook/update-from-chat', {
+            const response = await fetch('/api/v1/workbook/update-from-chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -731,6 +763,9 @@ function App() {
                     commit_message: args.commit_message
                 })
             });
+            if (!response.ok) {
+                throw new Error('Failed to update workbook');
+            }
             if (workbookRef.current && workbookRef.current.fetchWorkbook) {
                 workbookRef.current.fetchWorkbook();
             } else {

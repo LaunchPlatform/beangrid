@@ -659,9 +659,54 @@ h1 {
 }
 
 .chat-input-bar button:disabled {
-    background: #bdbdbd;
+    background: #ccc;
     cursor: not-allowed;
-} 
+}
+
+.confirmation-dialog {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.confirmation-dialog p {
+    margin: 0 0 1rem 0;
+    color: #333;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.confirmation-dialog .btn-confirm,
+.confirmation-dialog .btn-cancel {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-right: 0.5rem;
+    transition: background-color 0.2s ease;
+}
+
+.confirmation-dialog .btn-confirm {
+    background: #007bff;
+    color: white;
+}
+
+.confirmation-dialog .btn-confirm:hover {
+    background: #0056b3;
+}
+
+.confirmation-dialog .btn-cancel {
+    background: #6c757d;
+    color: white;
+}
+
+.confirmation-dialog .btn-cancel:hover {
+    background: #545b62;
+}
 
 /* Tab bar for switching between spreadsheet and YAML */
 .tab-bar {
@@ -728,7 +773,7 @@ h1 {
     color: #dc3545;
     margin-bottom: 0.5rem;
     font-weight: 600;
-} 
+}
 
 /* Diff View */
 .diff-view {
@@ -795,7 +840,7 @@ h1 {
     margin-left: 1rem;
     font-weight: 600;
     color: #007bff;
-} 
+}
 
 .chat-loading {
     display: flex;
