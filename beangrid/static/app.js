@@ -290,6 +290,7 @@ function ChatSidebar({ onAction, sessionUuid }) {
     const [historyLoaded, setHistoryLoaded] = React.useState(false);
     const [confirmationDialog, setConfirmationDialog] = React.useState(null);
     const messagesContainerRef = React.useRef(null);
+    const thinkingContentRef = React.useRef(null);
 
     // Auto-scroll to bottom when messages change
     React.useEffect(() => {
@@ -297,6 +298,16 @@ function ChatSidebar({ onAction, sessionUuid }) {
             messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
         }
     }, [messages, thinkingBlocks]);
+
+    // Additional scroll effect specifically for thinking content streaming
+    React.useEffect(() => {
+        if (messagesContainerRef.current) {
+            // Use requestAnimationFrame to ensure DOM is updated before scrolling
+            requestAnimationFrame(() => {
+                messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+            });
+        }
+    }, [thinkingBlocks]);
 
     // Load chat history on component mount
     React.useEffect(() => {
@@ -386,6 +397,17 @@ function ChatSidebar({ onAction, sessionUuid }) {
                         thinkingId: thinkingId,
                         isThinking: true 
                     }]);
+                    // Force scroll to bottom when thinking starts
+                    setTimeout(() => {
+                        // Scroll the thinking-content div to bottom
+                        if (thinkingContentRef.current) {
+                            thinkingContentRef.current.scrollTop = thinkingContentRef.current.scrollHeight;
+                        }
+                        // Also scroll the main messages container to ensure the thinking block is visible
+                        if (messagesContainerRef.current) {
+                            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+                        }
+                    }, 0);
                     break;
                     
                 case 'thinking_stream':
@@ -403,6 +425,17 @@ function ChatSidebar({ onAction, sessionUuid }) {
                         }
                         return prev;
                     });
+                    // Force scroll to bottom for thinking content
+                    setTimeout(() => {
+                        // Scroll the thinking-content div to bottom
+                        if (thinkingContentRef.current) {
+                            thinkingContentRef.current.scrollTop = thinkingContentRef.current.scrollHeight;
+                        }
+                        // Also scroll the main messages container to ensure the thinking block is visible
+                        if (messagesContainerRef.current) {
+                            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+                        }
+                    }, 0);
                     break;
                     
                 case 'thinking_end':
@@ -435,6 +468,12 @@ function ChatSidebar({ onAction, sessionUuid }) {
                         }
                         return newMessages;
                     });
+                    // Force scroll to bottom for regular content streaming
+                    setTimeout(() => {
+                        if (messagesContainerRef.current) {
+                            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+                        }
+                    }, 0);
                     break;
                     
                 case 'complete':
@@ -520,7 +559,7 @@ function ChatSidebar({ onAction, sessionUuid }) {
                         <span className="thinking-toggle">{thinkingBlock.isOpen ? '▼' : '▶'}</span>
                     </div>
                     {thinkingBlock.isOpen && (
-                        <div className="thinking-content">
+                        <div className="thinking-content" ref={thinkingContentRef}>
                             <pre>{thinkingBlock.content}</pre>
                         </div>
                     )}
