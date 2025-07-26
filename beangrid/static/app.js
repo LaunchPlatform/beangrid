@@ -517,9 +517,18 @@ function ChatSidebar({ onAction }) {
             );
         }
         
+        // Render markdown for assistant messages, plain text for user messages
+        const content = msg.role === 'assistant' ? 
+            marked.parse(msg.content || '') : 
+            msg.content;
+        
         return (
             <div key={index} className={`chat-msg ${msg.role} ${msg.isThinking ? 'thinking' : ''}`}>
-                {msg.content}
+                {msg.role === 'assistant' ? (
+                    <div dangerouslySetInnerHTML={{ __html: content }} />
+                ) : (
+                    content
+                )}
             </div>
         );
     };

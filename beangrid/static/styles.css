@@ -457,6 +457,105 @@ h1 {
     border: 1px solid #e9ecef;
 }
 
+/* Markdown styles for assistant messages */
+.chat-msg.assistant h1,
+.chat-msg.assistant h2,
+.chat-msg.assistant h3,
+.chat-msg.assistant h4,
+.chat-msg.assistant h5,
+.chat-msg.assistant h6 {
+    margin: 0.5rem 0 0.25rem 0;
+    font-weight: 600;
+    color: #333;
+}
+
+.chat-msg.assistant h1 { font-size: 1.2rem; }
+.chat-msg.assistant h2 { font-size: 1.1rem; }
+.chat-msg.assistant h3 { font-size: 1rem; }
+
+.chat-msg.assistant p {
+    margin: 0.25rem 0;
+    line-height: 1.5;
+}
+
+.chat-msg.assistant ul,
+.chat-msg.assistant ol {
+    margin: 0.25rem 0;
+    padding-left: 1.5rem;
+}
+
+.chat-msg.assistant li {
+    margin: 0.125rem 0;
+}
+
+.chat-msg.assistant code {
+    background: #f1f3f4;
+    padding: 0.125rem 0.25rem;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.chat-msg.assistant pre {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin: 0.5rem 0;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.chat-msg.assistant pre code {
+    background: none;
+    padding: 0;
+}
+
+.chat-msg.assistant blockquote {
+    border-left: 3px solid #007bff;
+    margin: 0.5rem 0;
+    padding-left: 0.75rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.chat-msg.assistant strong {
+    font-weight: 600;
+}
+
+.chat-msg.assistant em {
+    font-style: italic;
+}
+
+.chat-msg.assistant a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.chat-msg.assistant a:hover {
+    text-decoration: underline;
+}
+
+.chat-msg.assistant table {
+    border-collapse: collapse;
+    margin: 0.5rem 0;
+    width: 100%;
+}
+
+.chat-msg.assistant th,
+.chat-msg.assistant td {
+    border: 1px solid #e9ecef;
+    padding: 0.375rem 0.5rem;
+    text-align: left;
+}
+
+.chat-msg.assistant th {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
 .chat-msg.thinking {
     background: #fff3cd;
     color: #856404;

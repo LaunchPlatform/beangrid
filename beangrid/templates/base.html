@@ -22,5 +22,9 @@
 </head>
 <body>
     <div id="app">{% block content %}{% endblock %}</div>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="{{ url_for('static', path='/app.js') }}"></script>
 </body>
 </html> 
