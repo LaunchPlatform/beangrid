@@ -24,6 +24,6 @@ def make_app() -> FastAPI:
 
     # Include routers
     app.include_router(home_router.router)
-    app.include_router(api_router.router, prefix="/api/v1")
+    app.include_router(api_router.router)
 
     return app
