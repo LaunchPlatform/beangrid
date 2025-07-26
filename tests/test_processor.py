@@ -103,6 +103,73 @@ def test_circular_dependency_detection():
         processor.process_workbook(workbook)
 
 
+def test_complex_circular_dependency_detection():
+    """Test detection of more complex circular dependencies."""
+    workbook = Workbook(
+        sheets=[
+            Sheet(
+                name="Sheet1",
+                cells=[
+                    Cell(id="A1", value="10", formula=None),  # Base value
+                    Cell(id="A2", value=None, formula="A1 + A3"),  # Depends on A1, A3
+                    Cell(id="A3", value=None, formula="A2 + A4"),  # Depends on A2, A4
+                    Cell(id="A4", value=None, formula="A3 + A5"),  # Depends on A3, A5
+                    Cell(id="A5", value=None, formula="A4 + A2"),  # Creates cycle: A2 -> A3 -> A4 -> A5 -> A2
+                ],
+            )
+        ]
+    )
+
+    processor = FormulaProcessor()
+
+    with pytest.raises(ValueError, match="Circular dependencies detected"):
+        processor.process_workbook(workbook)
+
+
+def test_self_reference_circular_dependency():
+    """Test detection of self-referencing circular dependencies."""
+    workbook = Workbook(
+        sheets=[
+            Sheet(
+                name="Sheet1",
+                cells=[
+                    Cell(id="A1", value=None, formula="A1 + 1"),  # Self-reference
+                ],
+            )
+        ]
+    )
+
+    processor = FormulaProcessor()
+
+    with pytest.raises(ValueError, match="Circular dependencies detected"):
+        processor.process_workbook(workbook)
+
+
+def test_cross_sheet_circular_dependency():
+    """Test detection of circular dependencies across sheets."""
+    workbook = Workbook(
+        sheets=[
+            Sheet(
+                name="Sheet1",
+                cells=[
+                    Cell(id="A1", value=None, formula="Sheet2!A1 + 1"),
+                ],
+            ),
+            Sheet(
+                name="Sheet2",
+                cells=[
+                    Cell(id="A1", value=None, formula="Sheet1!A1 + 1"),
+                ],
+            ),
+        ]
+    )
+
+    processor = FormulaProcessor()
+
+    with pytest.raises(ValueError, match="Circular dependencies detected"):
+        processor.process_workbook(workbook)
+
+
 def test_sheet_references():
     """Test cross-sheet cell references."""
     workbook = Workbook(
