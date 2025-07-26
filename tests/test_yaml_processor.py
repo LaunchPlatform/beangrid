@@ -215,9 +215,7 @@ def test_formula_evaluation(workbook_fixture: str, expected_results: dict, reque
     # Check each expected result
     for sheet_name, cell_results in expected_results.items():
         # Find the sheet
-        sheet = next(
-            (s for s in processed_workbook.sheets if s.name == sheet_name), None
-        )
+        sheet = processed_workbook.get_sheet_by_name(sheet_name)
         assert sheet is not None, f"Sheet '{sheet_name}' not found"
 
         # Create cell lookup dictionary
