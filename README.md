@@ -4,6 +4,10 @@
 
 A plaintext spreadsheet application with real-time collaboration and AI assistance, built for the modern AI-powered workflow.
 
+## Demo
+
+https://github.com/user-attachments/assets/ee135ecf-e5bc-4059-85d2-0f8aa71dbd02
+
 ## Why Plaintext-Based Spreadsheets?
 
 ### 1. **Open Source & Vendor Independence**
