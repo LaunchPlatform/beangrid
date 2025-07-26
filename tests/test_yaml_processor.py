@@ -13,37 +13,43 @@ from beangrid.scheme.cell import Workbook
 
 
 @pytest.fixture
-def sample_workbook() -> Workbook:
+def fixtures_folder() -> Path:
+    """Get the fixtures folder path."""
+    return Path(__file__).parent / "fixtures"
+
+
+@pytest.fixture
+def sample_workbook(fixtures_folder: Path) -> Workbook:
     """Load sample workbook from fixtures."""
-    fixture_path = Path(__file__).parent / "fixtures" / "sample_workbook.yaml"
+    fixture_path = fixtures_folder / "sample_workbook.yaml"
     return load_workbook_from_yaml(fixture_path)
 
 
 @pytest.fixture
-def multi_sheet_workbook() -> Workbook:
+def multi_sheet_workbook(fixtures_folder: Path) -> Workbook:
     """Load multi-sheet workbook from fixtures."""
-    fixture_path = Path(__file__).parent / "fixtures" / "multi_sheet_workbook.yaml"
+    fixture_path = fixtures_folder / "multi_sheet_workbook.yaml"
     return load_workbook_from_yaml(fixture_path)
 
 
 @pytest.fixture
-def simple_calculations_workbook() -> Workbook:
+def simple_calculations_workbook(fixtures_folder: Path) -> Workbook:
     """Load simple calculations workbook from fixtures."""
-    fixture_path = Path(__file__).parent / "fixtures" / "simple_calculations.yaml"
+    fixture_path = fixtures_folder / "simple_calculations.yaml"
     return load_workbook_from_yaml(fixture_path)
 
 
 @pytest.fixture
-def function_tests_workbook() -> Workbook:
+def function_tests_workbook(fixtures_folder: Path) -> Workbook:
     """Load function tests workbook from fixtures."""
-    fixture_path = Path(__file__).parent / "fixtures" / "function_tests.yaml"
+    fixture_path = fixtures_folder / "function_tests.yaml"
     return load_workbook_from_yaml(fixture_path)
 
 
 @pytest.fixture
-def cross_sheet_references_workbook() -> Workbook:
+def cross_sheet_references_workbook(fixtures_folder: Path) -> Workbook:
     """Load cross-sheet references workbook from fixtures."""
-    fixture_path = Path(__file__).parent / "fixtures" / "cross_sheet_references.yaml"
+    fixture_path = fixtures_folder / "cross_sheet_references.yaml"
     return load_workbook_from_yaml(fixture_path)
 
 
